@@ -1,59 +1,105 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Quiet English Journal（仮）
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+> 1日3分で続く、ひとり用の静かな英語日記アプリ。
 
-## About Laravel
+Quiet English Journal は、プレッシャーなく英語日記を続けるための小さなWebアプリです。
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- 日本語でも英語でも、自由に日記を書ける
+- 日記を自然な **英語ジャーナル** に書き直してくれる
+- シンプルなフィードバックと、**その日だけのキーフレーズ1つ**を返してくれる
+- タイムラインやコミュニティ機能は入れず、**静かでミニマルなUI** を目指す
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+---
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## コンセプト
 
-## Learning Laravel
+- 「**1日3分で完結する英語日記**」
+- 「**日本語でも書けるから、気持ちを優先できる**」
+- 「**ごほうび通知や経験値ではなく、静かな自己対話の場**」
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+他の英語日記アプリで感じた課題：
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+- 機能が多すぎてごちゃつく
+- 日記と関係ないゲーミフィケーションが鬱陶しい
+- フィードバックがなくて、どこが良くてどこを直せばいいか分からない
 
-## Laravel Sponsors
+このアプリでは、
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+- 入力体験をできるだけシンプルに
+- フィードバックは「全体コメント＋具体例＋キーフレーズ1つ」に絞る
+- コミュニティやSNS要素は入れない
 
-### Premium Partners
+という思想で設計しています。
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+---
 
-## Contributing
+## 機能（MVP）
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### ✏️ 日記入力
 
-## Code of Conduct
+- 1日1本の日記を、「3つのセクション」で書く：
+  - **Mood / 気分**  
+    今日の気分・コンディション
+  - **What I did / 今日やったこと**  
+    何をしたか・印象に残った出来事
+  - **Thoughts & Plans / 考えごと・明日やりたいこと**  
+    振り返りや、明日やりたいこと
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+- 入力は **日本語・英語どちらでもOK**  
+  → 気分が乗らない日は全部日本語でもよいし、混ざっていてもよい。
 
-## Security Vulnerabilities
+---
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### 🤖 AIフィードバック（LLM）
 
-## License
+バックエンドから LLM（OpenAI API）を呼び出し、固定プロンプトで以下の形式のレスポンスを受け取ります：
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+- `english_text`  
+  → 日記全体を自然な **英語ジャーナル** に書き直したテキスト
+- `feedback_overall`  
+  → 全体に対する短いフィードバック（ニュアンス・構成など）
+- `feedback_corrections[]`  
+  → 修正例のリスト（before / after / 日本語コメント）
+- `key_phrase_en` / `key_phrase_ja` / `key_phrase_reason_ja`  
+  → その日覚えておきたいキーフレーズ1つと、その理由（日本語）
+
+この仕様はアプリ内で固定し、「毎日同じフォーマット」で返ってくる前提で設計しています。
+
+---
+
+### 📅 履歴（History）
+
+※ 現時点ではWIP
+
+- 直近の日記一覧（`日付 + スニペット`）を表示
+- 「Check your past journals」から過去の日記にアクセス
+- カレンダーUIで「書いた日」だけマークするようなシンプルな見せ方を検討中
+
+---
+
+## 技術スタック
+
+### Backend
+
+- Laravel 11
+- Laravel Breeze（Inertia + 認証）
+- SQLite（ローカル開発）
+
+### Frontend
+
+- Inertia.js
+- React 18
+- TypeScript
+- Tailwind CSS
+- Vite
+
+### AI
+
+- OpenAI API（Chat系エンドポイント）
+- プロンプトは以下の情報を返すように固定：
+  - `english_text`
+  - `feedback_overall`
+  - `feedback_corrections[]`
+  - `key_phrase_en / key_phrase_ja / key_phrase_reason_ja`
+
+---
