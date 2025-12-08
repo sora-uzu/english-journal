@@ -22,7 +22,6 @@ class Journal extends Model
     ];
 
     protected $casts = [
-        'date' => 'date',
         'sections_json' => 'array',
         'feedback_corrections_json' => 'array',
     ];
