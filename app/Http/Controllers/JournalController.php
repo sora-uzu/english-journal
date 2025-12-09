@@ -3,12 +3,18 @@
 namespace App\Http\Controllers;
 
 use App\Models\Journal;
+use App\Services\JournalFeedbackService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 class JournalController extends Controller
 {
+    public function __construct(
+        private JournalFeedbackService $feedbackService,
+    ) {
+    }
+
     /**
      * 日記入力画面
      */
@@ -36,23 +42,19 @@ class JournalController extends Controller
         ]);
 
         $userId = Auth::id();
+        $feedback = $this->feedbackService->generate($validated['sections']);
 
         $journal = Journal::updateOrCreate(
             [
                 'user_id' => $userId,
                 'date'    => $validated['date'],
             ],
-            [
-                'sections_json' => $validated['sections'],
-
-                // ここはあとで LLM のレスポンスに差し替える
-                'english_text' => 'TODO: call LLM and store english_text',
-                'feedback_overall' => 'TODO: feedback_overall',
-                'feedback_corrections_json' => [],
-                'key_phrase_en' => null,
-                'key_phrase_ja' => null,
-                'key_phrase_reason_ja' => null,
-            ]
+            array_merge(
+                [
+                    'sections_json' => $validated['sections'],
+                ],
+                $feedback
+            )
         );
 
         return redirect()->route('journal.show', $journal);
