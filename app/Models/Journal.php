@@ -26,6 +26,16 @@ class Journal extends Model
         'feedback_corrections_json' => 'array',
     ];
 
+    /**
+     * Convert the given value to JSON.
+     *
+     * 日本語を \uXXXX にエスケープせず、そのまま保存するためにオーバーライド。
+     */
+    protected function asJson($value, $flags = 0)
+    {
+        return json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | $flags);
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);
