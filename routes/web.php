@@ -28,7 +28,7 @@ Route::middleware('auth')->group(function () {
 Route::middleware(['auth'])->group(function () {
     Route::get('/journal', [JournalController::class, 'create'])->name('journal.create');
     Route::post('/journal', [JournalController::class, 'store'])->name('journal.store');
-    // この2つだけ先に作って、show/history は後ででもOK
+    Route::get('/journal/{journal}', [JournalController::class, 'show'])->name('journal.show');
 });
 
 require __DIR__.'/auth.php';
