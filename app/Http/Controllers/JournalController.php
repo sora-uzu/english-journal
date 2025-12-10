@@ -6,6 +6,7 @@ use App\Models\Journal;
 use App\Services\JournalFeedbackService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 
 class JournalController extends Controller
@@ -83,6 +84,63 @@ class JournalController extends Controller
                     'key_phrase_reason_ja' => $journal->key_phrase_reason_ja,
                 ],
             ],
+        ]);
+    }
+
+    /**
+     * 過去の日記一覧（カレンダー表示）
+     */
+    public function history(Request $request)
+    {
+        $today = now();
+        $year = (int) $request->query('year', $today->year);
+        $month = (int) $request->query('month', $today->month);
+
+        if ($month < 1 || $month > 12) {
+            $month = $today->month;
+        }
+
+        if ($year < 1) {
+            $year = $today->year;
+        }
+
+        $currentMonth = Carbon::create($year, $month, 1);
+        $startOfMonth = $currentMonth->copy()->startOfMonth();
+        $endOfMonth = $currentMonth->copy()->endOfMonth();
+
+        $journals = Journal::where('user_id', Auth::id())
+            ->whereBetween('date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
+            ->orderBy('date')
+            ->get();
+
+        $entries = $journals
+            ->map(fn (Journal $journal) => [
+                'id' => $journal->id,
+                'date' => Carbon::parse($journal->date)->toDateString(),
+                'hasEntry' => true,
+                'key_phrase_en' => $journal->key_phrase_en,
+                'key_phrase_ja' => $journal->key_phrase_ja,
+            ])
+            ->values();
+
+        $keyPhrases = $journals
+            ->filter(fn (Journal $journal) => $journal->key_phrase_en !== null)
+            ->sortByDesc('date')
+            ->unique('key_phrase_en')
+            ->take(3)
+            ->values()
+            ->map(fn (Journal $journal) => [
+                'id' => $journal->id,
+                'date' => Carbon::parse($journal->date)->toDateString(),
+                'key_phrase_en' => $journal->key_phrase_en,
+                'key_phrase_ja' => $journal->key_phrase_ja,
+            ]);
+
+        return Inertia::render('JournalHistory', [
+            'year' => $currentMonth->year,
+            'month' => $currentMonth->month,
+            'entries' => $entries,
+            'keyPhrases' => $keyPhrases,
         ]);
     }
 }

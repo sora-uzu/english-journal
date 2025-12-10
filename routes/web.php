@@ -28,6 +28,7 @@ Route::middleware('auth')->group(function () {
 Route::middleware(['auth'])->group(function () {
     Route::get('/journal', [JournalController::class, 'create'])->name('journal.create');
     Route::post('/journal', [JournalController::class, 'store'])->name('journal.store');
+    Route::get('/journal/history', [JournalController::class, 'history'])->name('journal.history');
     Route::get('/journal/{journal}', [JournalController::class, 'show'])->name('journal.show');
 });
 
