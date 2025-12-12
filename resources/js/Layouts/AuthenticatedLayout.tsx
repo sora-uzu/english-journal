@@ -1,15 +1,19 @@
-import ApplicationLogo from '@/Components/ApplicationLogo';
 import Dropdown from '@/Components/Dropdown';
 import NavLink from '@/Components/NavLink';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
 import { Link, usePage } from '@inertiajs/react';
+import { PageProps } from '@/types';
 import { PropsWithChildren, ReactNode, useState } from 'react';
 
 export default function Authenticated({
     header,
     children,
 }: PropsWithChildren<{ header?: ReactNode }>) {
-    const user = usePage().props.auth.user;
+    const { props, url } = usePage<PageProps>();
+    const user = props.auth.user;
+    const isJournalActive =
+        url.startsWith('/journal') && !url.startsWith('/journal/history');
+    const isHistoryActive = url.startsWith('/journal/history');
 
     const [showingNavigationDropdown, setShowingNavigationDropdown] =
         useState(false);
@@ -18,20 +22,27 @@ export default function Authenticated({
         <div className="min-h-screen bg-gray-100">
             <nav className="border-b border-gray-100 bg-white">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <div className="flex h-16 justify-between">
-                        <div className="flex">
-                            <div className="flex shrink-0 items-center">
-                                <Link href="/">
-                                    <ApplicationLogo className="block h-9 w-auto fill-current text-gray-800" />
-                                </Link>
-                            </div>
+                    <div className="flex h-16 items-center justify-between">
+                        <div className="flex items-center gap-8">
+                            <Link
+                                href={route('journal.create')}
+                                className="text-lg font-semibold text-gray-900"
+                            >
+                                English Journal
+                            </Link>
 
-                            <div className="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                            <div className="hidden space-x-4 sm:flex">
                                 <NavLink
-                                    href={route('dashboard')}
-                                    active={route().current('dashboard')}
+                                    href={route('journal.create')}
+                                    active={isJournalActive}
                                 >
-                                    Dashboard
+                                    New journal
+                                </NavLink>
+                                <NavLink
+                                    href={route('journal.history')}
+                                    active={isHistoryActive}
+                                >
+                                    History
                                 </NavLink>
                             </div>
                         </div>
@@ -132,10 +143,16 @@ export default function Authenticated({
                 >
                     <div className="space-y-1 pb-3 pt-2">
                         <ResponsiveNavLink
-                            href={route('dashboard')}
-                            active={route().current('dashboard')}
+                            href={route('journal.create')}
+                            active={isJournalActive}
                         >
-                            Dashboard
+                            New journal
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            href={route('journal.history')}
+                            active={isHistoryActive}
+                        >
+                            History
                         </ResponsiveNavLink>
                     </div>
 

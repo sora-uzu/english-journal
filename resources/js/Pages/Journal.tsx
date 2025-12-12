@@ -97,6 +97,7 @@ export default function Journal({ today }: PageProps<{ today: string }>) {
                                         )
                                     }
                                     placeholder="英語でも日本語でも自由に書いてOKです。"
+                                    disabled={processing}
                                 />
                             </div>
                         ))}
@@ -111,10 +112,18 @@ export default function Journal({ today }: PageProps<{ today: string }>) {
                             <button
                                 type="submit"
                                 disabled={processing}
-                                className="inline-flex items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+                                className="inline-flex items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-60 hover:bg-indigo-700 disabled:hover:bg-indigo-600"
                             >
-                                {processing ? "Saving…" : "Get feedback"}
+                                {processing
+                                    ? "Saving & generating feedback..."
+                                    : "Get feedback"}
                             </button>
+                            {processing && (
+                                <p className="ml-3 text-xs text-gray-500">
+                                    Generating your English feedback… this may
+                                    take a few seconds.
+                                </p>
+                            )}
                         </div>
                     </form>
                 </div>

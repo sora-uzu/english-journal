@@ -29,7 +29,7 @@ class JournalController extends Controller
     }
 
     /**
-     * 日記保存（LLM はまだダミー）
+     * 日記保存
      */
     public function store(Request $request)
     {
