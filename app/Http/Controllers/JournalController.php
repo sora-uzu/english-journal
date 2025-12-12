@@ -7,10 +7,13 @@ use App\Services\JournalFeedbackService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 
 class JournalController extends Controller
 {
+    private const SECTION_TEXT_MAX = 500;
+
     public function __construct(
         private JournalFeedbackService $feedbackService,
     ) {
@@ -33,14 +36,29 @@ class JournalController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $validator = Validator::make($request->all(), [
             'date' => ['required', 'date'],
             'sections' => ['required', 'array', 'size:3'],
             'sections.*.name' => ['required', 'string'],
             'sections.*.labelEn' => ['required', 'string'],
             'sections.*.labelJa' => ['required', 'string'],
-            'sections.*.text' => ['nullable', 'string'],
+            'sections.*.text' => ['nullable', 'string', 'max:'.self::SECTION_TEXT_MAX],
+        ], [
+            'sections.*.text.max' => '各セクションは'.self::SECTION_TEXT_MAX.'文字以内で入力してください。',
         ]);
+
+        $validator->after(function ($validator) {
+            $sections = $validator->getData()['sections'] ?? [];
+            $hasContent = collect($sections)->contains(function ($section) {
+                return trim($section['text'] ?? '') !== '';
+            });
+
+            if (! $hasContent) {
+                $validator->errors()->add('sections', '少なくとも1つのセクションに入力してください。');
+            }
+        });
+
+        $validated = $validator->validate();
 
         $userId = Auth::id();
         $feedback = $this->feedbackService->generate($validated['sections']);

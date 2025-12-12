@@ -86,19 +86,37 @@ export default function Journal({ today }: PageProps<{ today: string }>) {
                                         {section.labelJa}
                                     </span>
                                 </div>
-                                <textarea
-                                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                    rows={3}
-                                    value={section.text}
-                                    onChange={(e) =>
-                                        handleChangeSection(
-                                            index,
-                                            e.target.value
-                                        )
-                                    }
-                                    placeholder="英語でも日本語でも自由に書いてOKです。"
-                                    disabled={processing}
-                                />
+                                {(() => {
+                                    const errorKey =
+                                        `sections.${index}.text` as const;
+                                    const errorMessage = errors[errorKey];
+                                    return (
+                                        <>
+                                            <textarea
+                                                className={`w-full rounded-md border shadow-sm focus:ring-1 ${
+                                                    errorMessage
+                                                        ? 'border-red-400 focus:border-red-500 focus:ring-red-500'
+                                                        : 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-500'
+                                                }`}
+                                                rows={3}
+                                                value={section.text}
+                                                onChange={(e) =>
+                                                    handleChangeSection(
+                                                        index,
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                placeholder="英語でも日本語でも自由に書いてOKです。"
+                                                disabled={processing}
+                                            />
+                                            {errorMessage && (
+                                                <p className="text-xs text-red-500">
+                                                    {errorMessage}
+                                                </p>
+                                            )}
+                                        </>
+                                    );
+                                })()}
                             </div>
                         ))}
 
