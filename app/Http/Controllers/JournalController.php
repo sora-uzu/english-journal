@@ -61,7 +61,45 @@ class JournalController extends Controller
         $validated = $validator->validate();
 
         $userId = Auth::id();
-        $feedback = $this->feedbackService->generate($validated['sections']);
+        $sections = $validated['sections'];
+
+        $sectionsForLlm = collect($sections)
+            ->map(function (array $section) {
+                $text = trim((string) ($section['text'] ?? ''));
+
+                // 0〜2文字は「中身なし」とみなし、LLM入力から除外
+                if (mb_strlen($text) <= 2) {
+                    return null;
+                }
+
+                return [
+                    'name' => $section['name'],
+                    'labelEn' => $section['labelEn'],
+                    'labelJa' => $section['labelJa'],
+                    'text' => $text,
+                ];
+            })
+            ->filter()
+            ->values()
+            ->all();
+
+        $feedback = [
+            'english_text' => null,
+            'feedback_overall' => null,
+            'feedback_corrections_json' => [],
+            'key_phrase_en' => null,
+            'key_phrase_ja' => null,
+            'key_phrase_reason_ja' => null,
+        ];
+
+        if (count($sectionsForLlm) === 0) {
+            $feedback['feedback_overall'] = '今回は日記の内容がとても短かったため、英語フィードバックは生成していません。';
+        } else {
+            $feedback = array_merge(
+                $feedback,
+                $this->feedbackService->generate($sectionsForLlm),
+            );
+        }
 
         $journal = Journal::updateOrCreate(
             [
@@ -70,7 +108,7 @@ class JournalController extends Controller
             ],
             array_merge(
                 [
-                    'sections_json' => $validated['sections'],
+                    'sections_json' => $sections, // 元の入力をそのまま保存
                 ],
                 $feedback
             )
@@ -88,11 +126,22 @@ class JournalController extends Controller
             abort(403);
         }
 
+        $sections = $journal->sections_json ?? [];
+        $hasAnyLongSection = $this->hasAnyLongSection($sections);
+
+        $feedbackStatus = 'ok'; // ok | skipped_short | error
+
+        if (! $hasAnyLongSection && $journal->english_text === null) {
+            $feedbackStatus = 'skipped_short';
+        } elseif ($hasAnyLongSection && $journal->english_text === null) {
+            $feedbackStatus = 'error';
+        }
+
         return Inertia::render('Feedback', [
             'entry' => [
                 'id' => $journal->id,
                 'date' => (string) $journal->date,
-                'sections' => $journal->sections_json,
+                'sections' => $sections,
                 'feedback' => [
                     'english_text' => $journal->english_text,
                     'feedback_overall' => $journal->feedback_overall,
@@ -101,6 +150,7 @@ class JournalController extends Controller
                     'key_phrase_ja' => $journal->key_phrase_ja,
                     'key_phrase_reason_ja' => $journal->key_phrase_reason_ja,
                 ],
+                'feedbackStatus' => $feedbackStatus,
             ],
         ]);
     }
@@ -160,5 +210,21 @@ class JournalController extends Controller
             'entries' => $entries,
             'keyPhrases' => $keyPhrases,
         ]);
+    }
+
+    /**
+     * セクションの中に「3文字以上」の内容が1つでもあるかどうか判定する
+     */
+    private function hasAnyLongSection(array $sections): bool
+    {
+        foreach ($sections as $section) {
+            $text = trim((string) ($section['text'] ?? ''));
+
+            if (mb_strlen($text) > 2) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

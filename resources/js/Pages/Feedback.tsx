@@ -3,6 +3,7 @@ import { PageProps } from '@/types';
 import { Head } from '@inertiajs/react';
 
 type JournalSectionName = 'Mood' | 'WhatIDid' | 'ThoughtsPlans';
+type FeedbackStatus = 'ok' | 'skipped_short' | 'error';
 
 interface Section {
     name: JournalSectionName;
@@ -32,14 +33,24 @@ type FeedbackPageProps = PageProps<{
         date: string;
         sections: Section[];
         feedback: FeedbackData | null;
+        feedbackStatus: FeedbackStatus;
     };
 }>;
 
 export default function Feedback({ entry }: FeedbackPageProps) {
-    const { date, feedback } = entry;
+    const { date, feedback, feedbackStatus } = entry;
     const corrections = feedback?.feedback_corrections ?? [];
-    const hasEnglishFeedback = Boolean(feedback && feedback.english_text);
-    const hasKeyPhrase = Boolean(feedback && feedback.key_phrase_en);
+    const hasEnglishFeedback =
+        feedbackStatus === 'ok' && Boolean(feedback && feedback.english_text);
+    const hasKeyPhrase =
+        feedbackStatus === 'ok' && Boolean(feedback && feedback.key_phrase_en);
+
+    const journalMessage =
+        feedbackStatus === 'skipped_short'
+            ? '今回はとても短い日記だったので、英語フィードバックは生成していません。元の日記の内容だけを表示します。'
+            : feedbackStatus === 'error'
+              ? '英語フィードバックの生成に失敗しました。通信状況や時間をおいて、もう一度お試しください。'
+              : null;
 
     return (
         <AuthenticatedLayout>
@@ -54,15 +65,18 @@ export default function Feedback({ entry }: FeedbackPageProps) {
                             Your English journal
                         </h2>
 
+                        {journalMessage && (
+                            <p className="mt-3 text-sm text-gray-600">
+                                {journalMessage}
+                            </p>
+                        )}
+
                         {hasEnglishFeedback ? (
                             <p className="mt-3 whitespace-pre-line text-sm text-gray-800">
                                 {feedback?.english_text}
                             </p>
                         ) : (
                             <div className="mt-3 space-y-3 text-sm text-gray-700">
-                                <p className="text-gray-600">
-                                    英語フィードバックの生成に失敗しました。元の日記の内容をそのまま表示します。
-                                </p>
                                 <ul className="space-y-1">
                                     {entry.sections.map((section) => (
                                         <li key={section.name}>
@@ -82,7 +96,15 @@ export default function Feedback({ entry }: FeedbackPageProps) {
                             Feedback
                         </h2>
 
-                        {hasEnglishFeedback ? (
+                        {feedbackStatus === 'skipped_short' ? (
+                            <p className="text-sm text-gray-700">
+                                今日はとても短い日記だったので、英語のフィードバックはつけていません。もう一文だけ増やしてもらえると、より具体的なフィードバックが返せます。
+                            </p>
+                        ) : feedbackStatus === 'error' ? (
+                            <p className="text-sm text-gray-700">
+                                英語フィードバックの生成に失敗しました。通信状況や時間をおいて、もう一度お試しください。
+                            </p>
+                        ) : (
                             <>
                                 {feedback?.feedback_overall && (
                                     <p className="text-gray-800">
@@ -128,10 +150,6 @@ export default function Feedback({ entry }: FeedbackPageProps) {
                                         </p>
                                     )}
                             </>
-                        ) : (
-                            <p className="text-sm text-gray-600">
-                                英語フィードバックの生成に失敗しました。通信状況や時間をおいて、もう一度お試しください。
-                            </p>
                         )}
                     </section>
 
@@ -140,7 +158,15 @@ export default function Feedback({ entry }: FeedbackPageProps) {
                             Today&apos;s key phrase
                         </h2>
 
-                        {hasKeyPhrase ? (
+                        {feedbackStatus === 'skipped_short' ? (
+                            <p className="mt-3 text-sm text-gray-600">
+                                今日は日記がとても短かったため、キーフレーズはありません。
+                            </p>
+                        ) : feedbackStatus === 'error' ? (
+                            <p className="mt-3 text-sm text-gray-600">
+                                キーフレーズの生成に失敗しました。時間をおいて、もう一度お試しください。
+                            </p>
+                        ) : hasKeyPhrase ? (
                             <div className="mt-2">
                                 <p className="text-xl font-semibold text-indigo-600">
                                     {feedback?.key_phrase_en}
