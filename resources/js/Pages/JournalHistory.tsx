@@ -212,9 +212,12 @@ export default function JournalHistory() {
 
                         <div className="mt-4 space-y-3">
                             {keyPhrases.length === 0 && (
-                                <p className="text-sm text-gray-500">
-                                    No key phrases yet this month.
-                                </p>
+                                <div className="text-sm text-gray-600">
+                                    <p>今月はまだ日記がありません。</p>
+                                    <p className="mt-1 text-xs text-gray-500">
+                                        上の「New journal」から、今日の英語日記を書いてみませんか？
+                                    </p>
+                                </div>
                             )}
 
                             {keyPhrases.map((phrase) => (
