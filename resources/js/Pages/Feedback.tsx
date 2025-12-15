@@ -1,6 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { PageProps } from '@/types';
 import { Head } from '@inertiajs/react';
+import { useState } from 'react';
 
 type JournalSectionName = 'Mood' | 'WhatIDid' | 'ThoughtsPlans';
 type FeedbackStatus = 'ok' | 'skipped_short' | 'error';
@@ -60,6 +61,22 @@ const parseEnglishJournal = (englishText: string): EnglishJournalSections => {
     };
 };
 
+const buildTtsText = (
+    englishText: string | null | undefined,
+    sections: EnglishJournalSections,
+): string => {
+    const parts: string[] = [];
+    if (sections.mood) parts.push(sections.mood);
+    if (sections.whatIDid) parts.push(sections.whatIDid);
+    if (sections.thoughtsPlans) parts.push(sections.thoughtsPlans);
+
+    if (parts.length > 0) {
+        return parts.join(' ');
+    }
+
+    return englishText ?? '';
+};
+
 export default function Feedback({ entry }: FeedbackPageProps) {
     const { date, feedback, feedbackStatus } = entry;
     const corrections = feedback?.feedback_corrections ?? [];
@@ -67,12 +84,42 @@ export default function Feedback({ entry }: FeedbackPageProps) {
         feedbackStatus === 'ok' && Boolean(feedback && feedback.english_text);
     const hasKeyPhrase =
         feedbackStatus === 'ok' && Boolean(feedback && feedback.key_phrase_en);
+    const [isSpeaking, setIsSpeaking] = useState(false);
     const englishText = feedback?.english_text ?? '';
     const englishSections = parseEnglishJournal(englishText);
+    const ttsText = buildTtsText(englishText, englishSections);
     const hasParsedEnglishSections =
         Boolean(englishSections.mood) ||
         Boolean(englishSections.whatIDid) ||
         Boolean(englishSections.thoughtsPlans);
+    const handleSpeakClick = () => {
+        if (typeof window === 'undefined') {
+            return;
+        }
+
+        const textToSpeak = ttsText.trim();
+        if (!textToSpeak) {
+            return;
+        }
+
+        if (!('speechSynthesis' in window)) {
+            console.warn('SpeechSynthesis is not supported in this browser.');
+            return;
+        }
+
+        if (isSpeaking) {
+            window.speechSynthesis.cancel();
+            setIsSpeaking(false);
+            return;
+        }
+
+        const utterance = new SpeechSynthesisUtterance(textToSpeak);
+        utterance.lang = 'en-US';
+        utterance.onend = () => setIsSpeaking(false);
+        utterance.onerror = () => setIsSpeaking(false);
+        window.speechSynthesis.speak(utterance);
+        setIsSpeaking(true);
+    };
 
     const journalMessage =
         feedbackStatus === 'skipped_short'
@@ -90,9 +137,19 @@ export default function Feedback({ entry }: FeedbackPageProps) {
                     <div className="text-sm text-gray-500">{date}</div>
 
                     <section className="rounded-lg bg-white p-6 shadow-sm">
-                        <h2 className="text-lg font-semibold text-gray-900">
-                            Your English journal
-                        </h2>
+                        <div className="mb-4 flex items-start justify-between gap-4">
+                            <h2 className="text-lg font-semibold text-gray-900">
+                                Your English journal
+                            </h2>
+                            <button
+                                type="button"
+                                className="text-sm px-3 py-1 rounded-full border border-gray-300 hover:bg-gray-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                onClick={handleSpeakClick}
+                                disabled={!ttsText.trim()}
+                            >
+                                {isSpeaking ? '⏹ Stop' : '🔊 Listen'}
+                            </button>
+                        </div>
 
                         {journalMessage && (
                             <p className="mt-3 text-sm text-gray-600">
