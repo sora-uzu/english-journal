@@ -4,6 +4,11 @@ import { Head } from '@inertiajs/react';
 
 type JournalSectionName = 'Mood' | 'WhatIDid' | 'ThoughtsPlans';
 type FeedbackStatus = 'ok' | 'skipped_short' | 'error';
+type EnglishJournalSections = {
+    mood?: string;
+    whatIDid?: string;
+    thoughtsPlans?: string;
+};
 
 interface Section {
     name: JournalSectionName;
@@ -37,6 +42,24 @@ type FeedbackPageProps = PageProps<{
     };
 }>;
 
+const parseEnglishJournal = (englishText: string): EnglishJournalSections => {
+    const pattern =
+        /^Mood:\s*([\s\S]*?)\s*What I did:\s*([\s\S]*?)\s*Thoughts & Plans:\s*([\s\S]*)$/;
+    const match = englishText.match(pattern);
+
+    if (!match) {
+        return {};
+    }
+
+    const [, mood, whatIDid, thoughtsPlans] = match;
+
+    return {
+        mood: mood.trim() || undefined,
+        whatIDid: whatIDid.trim() || undefined,
+        thoughtsPlans: thoughtsPlans.trim() || undefined,
+    };
+};
+
 export default function Feedback({ entry }: FeedbackPageProps) {
     const { date, feedback, feedbackStatus } = entry;
     const corrections = feedback?.feedback_corrections ?? [];
@@ -44,6 +67,12 @@ export default function Feedback({ entry }: FeedbackPageProps) {
         feedbackStatus === 'ok' && Boolean(feedback && feedback.english_text);
     const hasKeyPhrase =
         feedbackStatus === 'ok' && Boolean(feedback && feedback.key_phrase_en);
+    const englishText = feedback?.english_text ?? '';
+    const englishSections = parseEnglishJournal(englishText);
+    const hasParsedEnglishSections =
+        Boolean(englishSections.mood) ||
+        Boolean(englishSections.whatIDid) ||
+        Boolean(englishSections.thoughtsPlans);
 
     const journalMessage =
         feedbackStatus === 'skipped_short'
@@ -72,9 +101,48 @@ export default function Feedback({ entry }: FeedbackPageProps) {
                         )}
 
                         {hasEnglishFeedback ? (
-                            <p className="mt-3 whitespace-pre-line text-sm text-gray-800">
-                                {feedback?.english_text}
-                            </p>
+                            <>
+                                {hasParsedEnglishSections ? (
+                                    <div className="mt-3 space-y-4 text-sm text-gray-800">
+                                        {englishSections.mood && (
+                                            <div className="space-y-1">
+                                                <div className="font-semibold text-gray-900">
+                                                    Mood
+                                                </div>
+                                                <p className="whitespace-pre-line text-sm text-gray-800">
+                                                    {englishSections.mood}
+                                                </p>
+                                            </div>
+                                        )}
+                                        {englishSections.whatIDid && (
+                                            <div className="space-y-1">
+                                                <div className="font-semibold text-gray-900">
+                                                    What I did
+                                                </div>
+                                                <p className="whitespace-pre-line text-sm text-gray-800">
+                                                    {englishSections.whatIDid}
+                                                </p>
+                                            </div>
+                                        )}
+                                        {englishSections.thoughtsPlans && (
+                                            <div className="space-y-1">
+                                                <div className="font-semibold text-gray-900">
+                                                    Thoughts & Plans
+                                                </div>
+                                                <p className="whitespace-pre-line text-sm text-gray-800">
+                                                    {englishSections.thoughtsPlans}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    englishText && (
+                                        <p className="mt-3 whitespace-pre-line text-sm text-gray-800">
+                                            {englishText}
+                                        </p>
+                                    )
+                                )}
+                            </>
                         ) : (
                             <div className="mt-3 space-y-3 text-sm text-gray-700">
                                 <ul className="space-y-1">
