@@ -17,6 +17,7 @@ export default function Authenticated({
 
     const [showingNavigationDropdown, setShowingNavigationDropdown] =
         useState(false);
+    const closeMobileMenu = () => setShowingNavigationDropdown(false);
 
     return (
         <div className="min-h-screen bg-gray-100">
@@ -100,6 +101,8 @@ export default function Authenticated({
                                     )
                                 }
                                 className="inline-flex items-center justify-center rounded-md p-2 text-gray-400 transition duration-150 ease-in-out hover:bg-gray-100 hover:text-gray-500 focus:bg-gray-100 focus:text-gray-500 focus:outline-none"
+                                aria-expanded={showingNavigationDropdown}
+                                aria-label="Toggle navigation menu"
                             >
                                 <svg
                                     className="h-6 w-6"
@@ -135,29 +138,64 @@ export default function Authenticated({
                     </div>
                 </div>
 
+            </nav>
+
+            {showingNavigationDropdown && (
                 <div
-                    className={
-                        (showingNavigationDropdown ? 'block' : 'hidden') +
-                        ' sm:hidden'
-                    }
-                >
-                    <div className="space-y-1 pb-3 pt-2">
+                    className="fixed inset-0 z-30 bg-black/50 sm:hidden"
+                    onClick={closeMobileMenu}
+                    aria-hidden="true"
+                />
+            )}
+
+            <div
+                className={`fixed inset-y-0 right-0 z-40 w-72 max-w-[80%] transform bg-white shadow-xl transition-transform duration-200 sm:hidden ${
+                    showingNavigationDropdown ? 'translate-x-0' : 'translate-x-full'
+                }`}
+                role="dialog"
+                aria-modal="true"
+            >
+                <div className="flex h-14 items-center justify-between border-b px-4">
+                    <span className="text-sm font-semibold text-gray-900">
+                        Menu
+                    </span>
+                    <button
+                        type="button"
+                        className="rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus:bg-gray-100 focus:text-gray-700 focus:outline-none"
+                        onClick={closeMobileMenu}
+                        aria-label="Close menu"
+                    >
+                        <svg
+                            className="h-5 w-5"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            strokeWidth="1.5"
+                            stroke="currentColor"
+                        >
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div className="flex h-[calc(100%-56px)] flex-col justify-between overflow-y-auto">
+                    <div className="space-y-1 px-2 py-3">
                         <ResponsiveNavLink
                             href={route('journal.create')}
                             active={isJournalActive}
+                            onClick={closeMobileMenu}
                         >
                             New journal
                         </ResponsiveNavLink>
                         <ResponsiveNavLink
                             href={route('journal.history')}
                             active={isHistoryActive}
+                            onClick={closeMobileMenu}
                         >
                             History
                         </ResponsiveNavLink>
                     </div>
-
-                    <div className="border-t border-gray-200 pb-1 pt-4">
-                        <div className="px-4">
+                    <div className="border-t border-gray-200 px-4 py-4 space-y-2">
+                        <div>
                             <div className="text-base font-medium text-gray-800">
                                 {user.name}
                             </div>
@@ -165,22 +203,18 @@ export default function Authenticated({
                                 {user.email}
                             </div>
                         </div>
-
-                        <div className="mt-3 space-y-1">
-                            <ResponsiveNavLink href={route('profile.edit')}>
-                                Profile
-                            </ResponsiveNavLink>
-                            <ResponsiveNavLink
-                                method="post"
-                                href={route('logout')}
-                                as="button"
-                            >
-                                Log Out
-                            </ResponsiveNavLink>
-                        </div>
+                        <ResponsiveNavLink
+                            method="post"
+                            href={route('logout')}
+                            as="button"
+                            onClick={closeMobileMenu}
+                            className="mt-2"
+                        >
+                            Log Out
+                        </ResponsiveNavLink>
                     </div>
                 </div>
-            </nav>
+            </div>
 
             {header && (
                 <header className="bg-white shadow">
