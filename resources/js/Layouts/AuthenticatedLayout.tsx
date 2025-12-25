@@ -22,11 +22,11 @@ export default function Authenticated({
         <div className="min-h-screen bg-gray-100">
             <nav className="border-b border-gray-100 bg-white">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <div className="flex h-16 items-center justify-between">
+                    <div className="flex h-12 items-center justify-between sm:h-16">
                         <div className="flex items-center gap-8">
                             <Link
                                 href={route('journal.create')}
-                                className="text-lg font-semibold text-gray-900"
+                                className="text-lg font-semibold text-gray-900 sm:text-xl"
                             >
                                 English Journal
                             </Link>
@@ -184,7 +184,7 @@ export default function Authenticated({
 
             {header && (
                 <header className="bg-white shadow">
-                    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+                    <div className="mx-auto max-w-7xl px-4 py-2 sm:px-6 sm:py-6 lg:px-8">
                         {header}
                     </div>
                 </header>
