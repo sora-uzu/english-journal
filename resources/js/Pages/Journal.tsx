@@ -173,10 +173,10 @@ export default function Journal({ today }: PageProps<{ today: string }>) {
                 </div>
             </div>
             <GlassModal open={showGuide} onClose={handleCloseGuide}>
-                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-900/85">
                     HOW TO USE THIS JOURNAL
                 </h2>
-                <ul className="space-y-2 text-sm leading-relaxed text-slate-700">
+                <ul className="space-y-2 text-sm leading-relaxed text-slate-900/75">
                     <li>・日本語でも英語でも、どちらで書いてもOKです。</li>
                     <li>
                         ・1日1つ、3分くらいで「今日の気分」や「やったこと」を自由に書いてください。

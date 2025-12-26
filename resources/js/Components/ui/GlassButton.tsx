@@ -7,7 +7,7 @@ type GlassButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const baseClasses =
-    'inline-flex items-center justify-center rounded-full text-sm font-semibold transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-200/70 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent active:scale-[0.98] active:translate-y-[1px] touch-manipulation disabled:cursor-not-allowed disabled:opacity-60';
+    'inline-flex items-center justify-center rounded-full text-sm font-semibold transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/35 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50 active:scale-[0.985] active:translate-y-[1px] active:shadow-[0_12px_40px_-24px_rgba(2,6,23,0.45)] touch-manipulation disabled:cursor-not-allowed disabled:opacity-60';
 
 const variantClasses: Record<GlassButtonVariant, string> = {
     primary:

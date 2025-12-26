@@ -37,7 +37,7 @@ export default function Modal({
             <Dialog
                 as="div"
                 id="modal"
-                className="fixed inset-0 z-50 flex transform items-center overflow-y-auto px-4 py-6 transition-all sm:px-0"
+                className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto px-4 py-6 transition-all sm:items-center sm:px-0"
                 onClose={close}
             >
                 <TransitionChild
@@ -48,7 +48,7 @@ export default function Modal({
                     leaveFrom="opacity-100"
                     leaveTo="opacity-0"
                 >
-                    <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm" />
+                    <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
                 </TransitionChild>
 
                 <TransitionChild
@@ -60,9 +60,9 @@ export default function Modal({
                     leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                 >
                     <DialogPanel
-                        className={`relative mb-6 transform overflow-hidden rounded-3xl border border-white/60 bg-white/20 shadow-[0_18px_45px_rgba(15,23,42,0.18)] backdrop-blur-3xl transition-all sm:mx-auto sm:w-full ${maxWidthClass}`}
+                        className={`relative mb-6 transform overflow-hidden rounded-3xl border border-white/60 bg-white/65 shadow-[0_28px_90px_-45px_rgba(2,6,23,0.40)] ring-1 ring-slate-900/5 backdrop-blur-3xl transition-all sm:mx-auto sm:w-full ${maxWidthClass}`}
                     >
-                        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/45 via-white/10 to-transparent" />
+                        <div className="pointer-events-none absolute inset-0 rounded-3xl bg-[radial-gradient(120%_80%_at_15%_10%,rgba(255,255,255,0.75),rgba(255,255,255,0)_55%),linear-gradient(115deg,rgba(255,255,255,0.28)_0%,rgba(255,255,255,0.06)_35%,rgba(255,255,255,0)_55%)] opacity-40" />
                         <div className="relative">{children}</div>
                     </DialogPanel>
                 </TransitionChild>
