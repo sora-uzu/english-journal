@@ -66,7 +66,7 @@ export default function Login({
                         <Link
                             href={route('password.request')}
                             className="text-xs text-slate-500 hover:text-slate-600 hover:underline"
-                            title="Forgot your password?"
+                            title="パスワードをお忘れですか？"
                         >
                             パスワードをお忘れの方
                         </Link>

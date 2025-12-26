@@ -13,26 +13,27 @@ export default function VerifyEmail({ status }: { status?: string }) {
     };
 
     return (
-        <AuthLayout title="Email Verification">
-            <Head title="Email Verification" />
+        <AuthLayout title="メールアドレスの確認">
+            <Head title="メールアドレスの確認" />
 
             <p className="text-sm text-slate-600">
-                Thanks for signing up! Before getting started, could you verify
-                your email address by clicking on the link we just emailed to
-                you? If you didn&apos;t receive the email, we will gladly send
-                you another.
+                ご登録ありがとうございます。はじめる前に、先ほどお送りしたメールのリンクから
+                メールアドレスの確認をお願いします。メールが届いていない場合は再送信できます。
             </p>
 
             {status === 'verification-link-sent' && (
                 <p className="mt-4 rounded-2xl bg-emerald-50/70 px-3 py-2 text-xs text-emerald-700">
-                    A new verification link has been sent to the email address
-                    you provided during registration.
+                    登録時のメールアドレス宛に確認リンクを再送信しました。
                 </p>
             )}
 
             <form onSubmit={submit} className="mt-5 flex items-center gap-3">
-                <GlassButton type="submit" disabled={processing} className="px-4 py-2">
-                    Resend Verification Email
+                <GlassButton
+                    type="submit"
+                    disabled={processing}
+                    className="px-4 py-2"
+                >
+                    確認メールを再送信
                 </GlassButton>
 
                 <Link
@@ -41,7 +42,7 @@ export default function VerifyEmail({ status }: { status?: string }) {
                     as="button"
                     className="text-xs text-slate-500 hover:text-slate-700 hover:underline"
                 >
-                    Log Out
+                    ログアウト
                 </Link>
             </form>
         </AuthLayout>

@@ -18,7 +18,7 @@
     }
 
     .lg-input-error {
-        @apply border-rose-300 ring-1 ring-rose-200/70 focus:border-rose-300 focus:ring-rose-300/60;
+        @apply border-rose-300/80 ring-1 ring-rose-200/70 focus:border-rose-300/90 focus:ring-rose-300/60;
     }
 
     .lg-textarea {

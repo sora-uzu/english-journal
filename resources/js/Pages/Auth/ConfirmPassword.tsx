@@ -20,12 +20,11 @@ export default function ConfirmPassword() {
     };
 
     return (
-        <AuthLayout title="Confirm Password">
-            <Head title="Confirm Password" />
+        <AuthLayout title="パスワードの確認">
+            <Head title="パスワードの確認" />
 
             <p className="text-sm text-slate-600">
-                This is a secure area of the application. Please confirm your
-                password before continuing.
+                安全な操作のため、続行するにはパスワードをもう一度入力してください。
             </p>
 
             <form onSubmit={submit} className="mt-5 space-y-4">
@@ -33,7 +32,7 @@ export default function ConfirmPassword() {
                     id="password"
                     type="password"
                     name="password"
-                    label="Password"
+                    label="パスワード"
                     value={data.password}
                     autoFocus
                     onChange={(e) => setData('password', e.target.value)}
@@ -45,7 +44,7 @@ export default function ConfirmPassword() {
                     disabled={processing}
                     className="w-full py-3"
                 >
-                    Confirm
+                    確認する
                 </GlassButton>
             </form>
         </AuthLayout>
