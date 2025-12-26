@@ -42,36 +42,25 @@ const JournalTextarea: React.FC<JournalTextareaProps> = ({
     };
 
     const textareaClasses = [
-        "w-full",
-        "min-h-[104px]",
+        "lg-textarea",
         "sm:min-h-[120px]",
         "resize-none",
-        "rounded-lg",
-        "border",
-        "bg-white",
-        "px-4",
-        "py-3",
-        "text-base",
         "leading-relaxed",
         "md:text-sm",
-        "focus:outline-none",
-        "focus:ring-2",
-        error
-            ? "border-red-400 focus:border-red-500 focus:ring-red-500"
-            : "border-gray-300 focus:border-indigo-500 focus:ring-indigo-500",
-        "placeholder:text-gray-400",
-        "transition",
-    ].join(" ");
+        error ? "lg-textarea-error" : "",
+    ]
+        .filter(Boolean)
+        .join(" ");
 
     return (
         <div className={`space-y-2 md:space-y-3 ${className}`}>
             <label
                 htmlFor={name}
-                className="flex items-baseline gap-1.5 md:gap-2 text-gray-900"
+                className="flex items-baseline gap-1.5 md:gap-2 text-slate-900"
             >
                 <span className="font-semibold">{label}</span>
                 {subLabel && (
-                    <span className="text-xs text-gray-500">{subLabel}</span>
+                    <span className="text-xs text-slate-500">{subLabel}</span>
                 )}
             </label>
             <textarea
@@ -86,7 +75,7 @@ const JournalTextarea: React.FC<JournalTextareaProps> = ({
                 disabled={disabled}
                 rows={3}
             />
-            {error && <p className="text-xs text-red-500">{error}</p>}
+            {error && <p className="text-xs text-rose-600">{error}</p>}
         </div>
     );
 };

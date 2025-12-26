@@ -1,4 +1,6 @@
-import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import AppLayout from "@/Layouts/AppLayout";
+import GlassButton from "@/Components/ui/GlassButton";
+import GlassCard from "@/Components/ui/GlassCard";
 import { PageProps } from "@/types";
 import { Head } from "@inertiajs/react";
 import { useState } from "react";
@@ -94,20 +96,20 @@ const getFirstSentence = (text: string): string => {
 };
 
 const FeedbackTip = ({ correction }: { correction: Correction }) => (
-    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm text-slate-800">
+    <GlassCard className="rounded-2xl p-4 shadow-[0_10px_30px_rgba(15,23,42,0.12)]">
         <div className="mb-2 flex items-center justify-between gap-2">
             <span className="rounded-full bg-violet-50 px-2.5 py-0.5 text-[11px] font-semibold text-violet-700">
                 PHRASE
             </span>
         </div>
         <div className="space-y-1.5">
-            <p className="rounded-xl bg-white px-3 py-2 text-slate-700">
+            <p className="rounded-xl bg-white/60 px-3 py-2 text-slate-700">
                 <span className="mr-1 font-semibold text-slate-500">
                     Before:
                 </span>
                 {correction.before}
             </p>
-            <p className="rounded-xl bg-violet-50/80 px-3 py-2 text-slate-900">
+            <p className="rounded-xl bg-violet-50/70 px-3 py-2 text-slate-900">
                 <span className="mr-1 font-semibold text-violet-700">
                     After:
                 </span>
@@ -119,7 +121,7 @@ const FeedbackTip = ({ correction }: { correction: Correction }) => (
                 {correction.note_ja}
             </p>
         )}
-    </div>
+    </GlassCard>
 );
 
 export default function Feedback({ entry }: FeedbackPageProps) {
@@ -215,47 +217,47 @@ export default function Feedback({ entry }: FeedbackPageProps) {
     const shouldShowToggle = corrections.length > 2;
 
     return (
-        <AuthenticatedLayout>
+        <AppLayout>
             <Head title="Feedback" />
 
-            <div className="bg-slate-50">
-                <div className="mx-auto w-full max-w-3xl px-4 pb-10 pt-6 sm:px-6 lg:px-8">
-                    <p className="text-xs font-medium text-slate-500">{date}</p>
+            <div className="mx-auto w-full max-w-3xl px-4 pb-10 pt-6 sm:px-6 lg:px-8">
+                <p className="text-xs font-medium text-slate-500">{date}</p>
 
-                    <div className="mt-4 space-y-6 sm:space-y-8">
-                        <section className="rounded-2xl border border-violet-100 bg-violet-50/80 p-4 shadow-sm sm:p-5">
-                            <div className="space-y-2">
-                                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-violet-700">
-                                    Today&apos;s feedback
-                                </p>
-                                <p className="text-sm text-slate-800">
-                                    {summaryMessage}
-                                </p>
-                            </div>
-                        </section>
+                <div className="mt-4 space-y-6 sm:space-y-8">
+                    <GlassCard className="border-violet-200/60 bg-white/25 p-4 sm:p-5">
+                        <div className="space-y-2">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-violet-700">
+                                Today&apos;s feedback
+                            </p>
+                            <p className="text-sm text-slate-800">
+                                {summaryMessage}
+                            </p>
+                        </div>
+                    </GlassCard>
 
-                        <section className="rounded-2xl bg-white p-5 shadow-sm sm:p-6">
-                            <header className="mb-4 flex items-center justify-between gap-3">
-                                <h2 className="text-base font-semibold text-slate-900">
-                                    Your English journal
-                                </h2>
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        type="button"
-                                        className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-white/70 px-3.5 py-1.5 text-xs font-semibold text-indigo-700 shadow-sm backdrop-blur transition hover:bg-indigo-50 active:scale-[0.97] active:bg-indigo-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
-                                        onClick={handleSpeakClick}
-                                        disabled={!ttsText.trim()}
+                    <GlassCard className="p-5 sm:p-6">
+                        <header className="mb-4 flex items-center justify-between gap-3">
+                            <h2 className="text-base font-semibold text-slate-900">
+                                Your English journal
+                            </h2>
+                            <div className="flex items-center gap-2">
+                                <GlassButton
+                                    type="button"
+                                    variant="secondary"
+                                    className="gap-1.5 rounded-full px-3.5 py-1.5 text-xs"
+                                    onClick={handleSpeakClick}
+                                    disabled={!ttsText.trim()}
+                                >
+                                    <span
+                                        aria-hidden="true"
+                                        className="flex h-5 w-5 items-center justify-center rounded-full bg-white/60 text-[13px]"
                                     >
-                                        <span
-                                            aria-hidden="true"
-                                            className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-50 text-[13px]"
-                                        >
-                                            🔊
-                                        </span>
-                                        <span>{isSpeaking ? "Stop" : "Listen"}</span>
-                                    </button>
-                                </div>
-                            </header>
+                                        🔊
+                                    </span>
+                                    <span>{isSpeaking ? "Stop" : "Listen"}</span>
+                                </GlassButton>
+                            </div>
+                        </header>
 
                             {journalMessage && (
                                 <p className="mb-4 text-sm text-slate-600">
@@ -276,7 +278,7 @@ export default function Feedback({ entry }: FeedbackPageProps) {
                                                         <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
                                                             {section.label}
                                                         </p>
-                                                        <div className="mt-1 rounded-xl bg-slate-50 px-3 py-2">
+                                                        <div className="mt-1 rounded-xl bg-white/40 px-3 py-2">
                                                             <p className="whitespace-pre-line text-sm leading-relaxed text-slate-900">
                                                                 {section.text}
                                                             </p>
@@ -292,7 +294,7 @@ export default function Feedback({ entry }: FeedbackPageProps) {
                                                     <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
                                                         Journal
                                                     </p>
-                                                    <div className="mt-1 rounded-xl bg-slate-50 px-3 py-2">
+                                                    <div className="mt-1 rounded-xl bg-white/40 px-3 py-2">
                                                         <p className="whitespace-pre-line text-sm leading-relaxed text-slate-900">
                                                             {englishText}
                                                         </p>
@@ -313,7 +315,7 @@ export default function Feedback({ entry }: FeedbackPageProps) {
                                                 <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
                                                     {section.label}
                                                 </p>
-                                                <div className="mt-1 rounded-xl bg-slate-50 px-3 py-2">
+                                                <div className="mt-1 rounded-xl bg-white/40 px-3 py-2">
                                                     <p className="whitespace-pre-line text-sm leading-relaxed text-slate-800">
                                                         {section.text}
                                                     </p>
@@ -323,13 +325,13 @@ export default function Feedback({ entry }: FeedbackPageProps) {
                                     })}
                                 </div>
                             )}
-                        </section>
+                    </GlassCard>
 
-                        <section className="rounded-2xl bg-white p-5 shadow-sm sm:p-6">
-                            <header className="mb-3">
-                                <h2 className="text-base font-semibold text-slate-900">
-                                    Feedback
-                                </h2>
+                    <GlassCard className="p-5 sm:p-6">
+                        <header className="mb-3">
+                            <h2 className="text-base font-semibold text-slate-900">
+                                Feedback
+                            </h2>
                                 {feedbackStatus === "skipped_short" ? (
                                     <p className="mt-1 text-sm text-slate-700">
                                         今日はとても短い日記だったので、英語のフィードバックはつけていません。もう一文だけ増やしてもらえると、より具体的なフィードバックが返せます。
@@ -377,58 +379,55 @@ export default function Feedback({ entry }: FeedbackPageProps) {
                                     )}
                                 </>
                             )}
-                        </section>
+                    </GlassCard>
 
-                        <section className="overflow-hidden rounded-2xl bg-white shadow-sm">
-                            <div className="h-1 w-full bg-gradient-to-r from-violet-500 via-indigo-500 to-sky-400" />
-                            <div className="p-5 sm:p-6">
-                                <header className="mb-3 flex items-center justify-between gap-2">
-                                    <h2 className="text-base font-semibold text-slate-900">
-                                        Today&apos;s key phrase
-                                    </h2>
-                                </header>
+                    <GlassCard className="overflow-hidden p-0">
+                        <div className="h-1 w-full bg-gradient-to-r from-violet-500 via-indigo-500 to-sky-400" />
+                        <div className="p-5 sm:p-6">
+                            <header className="mb-3 flex items-center justify-between gap-2">
+                                <h2 className="text-base font-semibold text-slate-900">
+                                    Today&apos;s key phrase
+                                </h2>
+                            </header>
 
-                                {feedbackStatus === "skipped_short" ? (
-                                    <p className="text-sm text-slate-600">
-                                        今日は日記がとても短かったため、キーフレーズはありません。
+                            {feedbackStatus === "skipped_short" ? (
+                                <p className="text-sm text-slate-600">
+                                    今日は日記がとても短かったため、キーフレーズはありません。
+                                </p>
+                            ) : feedbackStatus === "error" ? (
+                                <p className="text-sm text-slate-600">
+                                    キーフレーズの生成に失敗しました。時間をおいて、もう一度お試しください。
+                                </p>
+                            ) : hasKeyPhrase ? (
+                                <div>
+                                    <p className="text-lg font-semibold leading-snug text-violet-700">
+                                        {feedback?.key_phrase_en}
                                     </p>
-                                ) : feedbackStatus === "error" ? (
-                                    <p className="text-sm text-slate-600">
-                                        キーフレーズの生成に失敗しました。時間をおいて、もう一度お試しください。
-                                    </p>
-                                ) : hasKeyPhrase ? (
-                                    <div>
-                                        <p className="text-lg font-semibold leading-snug text-violet-700">
-                                            {feedback?.key_phrase_en}
+                                    {feedback?.key_phrase_ja && (
+                                        <p className="mt-1 text-sm text-slate-700">
+                                            {feedback.key_phrase_ja}
                                         </p>
-                                        {feedback?.key_phrase_ja && (
-                                            <p className="mt-1 text-sm text-slate-700">
-                                                {feedback.key_phrase_ja}
+                                    )}
+                                    {feedback?.key_phrase_reason_ja && (
+                                        <div className="mt-3 rounded-xl bg-white/40 px-3 py-2">
+                                            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+                                                Why it&apos;s useful
                                             </p>
-                                        )}
-                                        {feedback?.key_phrase_reason_ja && (
-                                            <div className="mt-3 rounded-xl bg-slate-50 px-3 py-2">
-                                                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-                                                    Why it&apos;s useful
-                                                </p>
-                                                <p className="mt-1 text-xs leading-relaxed text-slate-700">
-                                                    {
-                                                        feedback.key_phrase_reason_ja
-                                                    }
-                                                </p>
-                                            </div>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <p className="text-sm text-slate-600">
-                                        今回はキーフレーズが生成されませんでした。次の日記でまたフレーズを確認してみましょう。
-                                    </p>
-                                )}
-                            </div>
-                        </section>
-                    </div>
+                                            <p className="mt-1 text-xs leading-relaxed text-slate-700">
+                                                {feedback.key_phrase_reason_ja}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-slate-600">
+                                    今回はキーフレーズが生成されませんでした。次の日記でまたフレーズを確認してみましょう。
+                                </p>
+                            )}
+                        </div>
+                    </GlassCard>
                 </div>
             </div>
-        </AuthenticatedLayout>
+        </AppLayout>
     );
 }

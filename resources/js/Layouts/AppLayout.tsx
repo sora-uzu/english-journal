@@ -1,11 +1,12 @@
 import Dropdown from '@/Components/Dropdown';
 import NavLink from '@/Components/NavLink';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
+import GlassBackground from '@/Components/ui/GlassBackground';
 import { Link, usePage } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import { PropsWithChildren, ReactNode, useState } from 'react';
 
-export default function Authenticated({
+export default function AppLayout({
     header,
     children,
 }: PropsWithChildren<{ header?: ReactNode }>) {
@@ -20,14 +21,15 @@ export default function Authenticated({
     const closeMobileMenu = () => setShowingNavigationDropdown(false);
 
     return (
-        <div className="min-h-screen bg-gray-100">
-            <nav className="border-b border-gray-100 bg-white">
+        <div className="min-h-screen">
+            <GlassBackground />
+            <nav className="border-b border-white/40 bg-white/20 backdrop-blur-xl">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div className="flex h-12 items-center justify-between sm:h-16">
                         <div className="flex items-center gap-8">
                             <Link
                                 href={route('journal.create')}
-                                className="text-lg font-semibold text-gray-900 sm:text-xl"
+                                className="text-lg font-semibold text-slate-900 sm:text-xl"
                             >
                                 English Journal
                             </Link>
@@ -52,10 +54,10 @@ export default function Authenticated({
                             <div className="relative ms-3">
                                 <Dropdown>
                                     <Dropdown.Trigger>
-                                        <span className="inline-flex rounded-md">
+                                        <span className="inline-flex rounded-full bg-white/30 px-2 py-1.5 backdrop-blur">
                                             <button
                                                 type="button"
-                                                className="inline-flex items-center rounded-md border border-transparent bg-white px-3 py-2 text-sm font-medium leading-4 text-gray-500 transition duration-150 ease-in-out hover:text-gray-700 focus:outline-none"
+                                                className="inline-flex items-center text-sm font-medium leading-4 text-slate-600 transition duration-150 ease-in-out hover:text-slate-800 focus:outline-none"
                                             >
                                                 {user.name}
 
@@ -75,7 +77,7 @@ export default function Authenticated({
                                         </span>
                                     </Dropdown.Trigger>
 
-                                    <Dropdown.Content>
+                                    <Dropdown.Content contentClasses="py-1 bg-white/80 backdrop-blur">
                                         <Dropdown.Link
                                             href={route('profile.edit')}
                                         >
@@ -100,7 +102,7 @@ export default function Authenticated({
                                         (previousState) => !previousState,
                                     )
                                 }
-                                className="inline-flex items-center justify-center rounded-md p-2 text-gray-400 transition duration-150 ease-in-out hover:bg-gray-100 hover:text-gray-500 focus:bg-gray-100 focus:text-gray-500 focus:outline-none"
+                                className="inline-flex items-center justify-center rounded-full bg-white/30 p-2 text-slate-600 transition duration-150 ease-in-out hover:bg-white/50 hover:text-slate-800 focus:outline-none"
                                 aria-expanded={showingNavigationDropdown}
                                 aria-label="Toggle navigation menu"
                             >
@@ -137,31 +139,30 @@ export default function Authenticated({
                         </div>
                     </div>
                 </div>
-
             </nav>
 
             {showingNavigationDropdown && (
                 <div
-                    className="fixed inset-0 z-30 bg-black/50 sm:hidden"
+                    className="fixed inset-0 z-30 bg-slate-900/30 backdrop-blur-sm sm:hidden"
                     onClick={closeMobileMenu}
                     aria-hidden="true"
                 />
             )}
 
             <div
-                className={`fixed inset-y-0 right-0 z-40 w-72 max-w-[80%] transform bg-white shadow-xl transition-transform duration-200 sm:hidden ${
+                className={`fixed inset-y-0 right-0 z-40 w-72 max-w-[80%] transform border-l border-white/40 bg-white/30 shadow-xl backdrop-blur-2xl transition-transform duration-200 sm:hidden ${
                     showingNavigationDropdown ? 'translate-x-0' : 'translate-x-full'
                 }`}
                 role="dialog"
                 aria-modal="true"
             >
-                <div className="flex h-14 items-center justify-between border-b px-4">
-                    <span className="text-sm font-semibold text-gray-900">
+                <div className="flex h-14 items-center justify-between border-b border-white/40 px-4">
+                    <span className="text-sm font-semibold text-slate-900">
                         Menu
                     </span>
                     <button
                         type="button"
-                        className="rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus:bg-gray-100 focus:text-gray-700 focus:outline-none"
+                        className="rounded-full bg-white/40 p-2 text-slate-600 hover:bg-white/60 hover:text-slate-800 focus:outline-none"
                         onClick={closeMobileMenu}
                         aria-label="Close menu"
                     >
@@ -194,12 +195,12 @@ export default function Authenticated({
                             History
                         </ResponsiveNavLink>
                     </div>
-                    <div className="border-t border-gray-200 px-4 py-4 space-y-2">
+                    <div className="space-y-2 border-t border-white/40 px-4 py-4">
                         <div>
-                            <div className="text-base font-medium text-gray-800">
+                            <div className="text-base font-medium text-slate-800">
                                 {user.name}
                             </div>
-                            <div className="text-sm font-medium text-gray-500">
+                            <div className="text-sm font-medium text-slate-500">
                                 {user.email}
                             </div>
                         </div>
@@ -217,8 +218,8 @@ export default function Authenticated({
             </div>
 
             {header && (
-                <header className="bg-white shadow">
-                    <div className="mx-auto max-w-7xl px-4 py-2 sm:px-6 sm:py-6 lg:px-8">
+                <header className="border-b border-white/40 bg-white/20 shadow-sm backdrop-blur-xl">
+                    <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 sm:py-5 lg:px-8">
                         {header}
                     </div>
                 </header>

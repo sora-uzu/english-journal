@@ -1,3 +1,6 @@
+import GlassButton from '@/Components/ui/GlassButton';
+import GlassInput from '@/Components/ui/GlassInput';
+import AuthLayout from '@/Layouts/AuthLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
 
@@ -23,106 +26,71 @@ export default function Login({
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-slate-100 px-6">
+        <AuthLayout
+            title="English Journal"
+            subtitle="3分で続けられる、静かな英語日記アプリ"
+        >
             <Head title="ログイン" />
 
-            <div className="w-full max-w-md">
-                <div className="text-center">
-                    <h1 className="text-2xl font-semibold text-slate-900">
-                        English Journal
-                    </h1>
-                    <p className="mt-2 text-sm text-slate-500">
-                        3分で続けられる、静かな英語日記アプリ
-                    </p>
-                </div>
+            {status && (
+                <p className="mb-4 rounded-2xl bg-emerald-50/70 px-3 py-2 text-xs text-emerald-700">
+                    {status}
+                </p>
+            )}
 
-                <div className="mt-6 rounded-2xl border border-slate-100 bg-white px-6 py-6 shadow-sm">
-                    {status && (
-                        <p className="mb-3 text-sm text-emerald-600">
-                            {status}
-                        </p>
-                    )}
-                    <form onSubmit={submit} className="space-y-4">
-                        <div>
-                            <label
-                                htmlFor="email"
-                                className="text-sm font-medium text-slate-700"
-                            >
-                                メールアドレス
-                            </label>
-                            <input
-                                id="email"
-                                type="email"
-                                name="email"
-                                value={data.email}
-                                className="mt-1 block w-full rounded-xl border border-slate-300 text-sm focus:border-violet-500 focus:ring-violet-500"
-                                autoComplete="username"
-                                autoFocus
-                                onChange={(e) =>
-                                    setData('email', e.target.value)
-                                }
-                            />
-                            {errors.email && (
-                                <p className="mt-1 text-xs text-red-600">
-                                    {errors.email}
-                                </p>
-                            )}
-                        </div>
+            <form onSubmit={submit} className="space-y-4">
+                <GlassInput
+                    id="email"
+                    type="email"
+                    name="email"
+                    label="メールアドレス"
+                    value={data.email}
+                    autoComplete="username"
+                    autoFocus
+                    onChange={(e) => setData('email', e.target.value)}
+                    error={errors.email}
+                />
 
-                        <div>
-                            <label
-                                htmlFor="password"
-                                className="text-sm font-medium text-slate-700"
-                            >
-                                パスワード
-                            </label>
-                            <input
-                                id="password"
-                                type="password"
-                                name="password"
-                                value={data.password}
-                                className="mt-1 block w-full rounded-xl border border-slate-300 text-sm focus:border-violet-500 focus:ring-violet-500"
-                                autoComplete="current-password"
-                                onChange={(e) =>
-                                    setData('password', e.target.value)
-                                }
-                            />
-                            {errors.password && (
-                                <p className="mt-1 text-xs text-red-600">
-                                    {errors.password}
-                                </p>
-                            )}
-                            <div className="mt-2 flex justify-end">
-                                <Link
-                                    href={route('password.request')}
-                                    className="text-xs text-slate-500 hover:text-slate-600 hover:underline"
-                                    title="Forgot your password?"
-                                >
-                                    パスワードをお忘れの方
-                                </Link>
-                            </div>
-                        </div>
-
-                        <button
-                            type="submit"
-                            disabled={processing}
-                            className="mt-2 inline-flex w-full items-center justify-center rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
+                <div>
+                    <GlassInput
+                        id="password"
+                        type="password"
+                        name="password"
+                        label="パスワード"
+                        value={data.password}
+                        autoComplete="current-password"
+                        onChange={(e) => setData('password', e.target.value)}
+                        error={errors.password}
+                    />
+                    <div className="mt-2 flex justify-end">
+                        <Link
+                            href={route('password.request')}
+                            className="text-xs text-slate-500 hover:text-slate-600 hover:underline"
+                            title="Forgot your password?"
                         >
-                            {processing ? 'ログイン中…' : 'ログイン'}
-                        </button>
-                    </form>
+                            パスワードをお忘れの方
+                        </Link>
+                    </div>
                 </div>
 
-                <div className="mt-4 text-center text-xs text-slate-500">
-                    <span>アカウントをお持ちでない方は </span>
-                    <Link
-                        href={route('register')}
-                        className="font-medium text-violet-600 hover:text-violet-700"
-                    >
-                        新規登録
-                    </Link>
-                </div>
+                <GlassButton
+                    type="submit"
+                    disabled={processing}
+                    className="w-full py-3"
+                >
+                    {processing ? 'ログイン中…' : 'ログイン'}
+                </GlassButton>
+            </form>
+
+            <div className="mt-5 text-center text-xs text-slate-500">
+                <span>アカウントをお持ちでない方は </span>
+                <Link
+                    href={route('register')}
+                    className="font-medium text-violet-600 hover:text-violet-700"
+                >
+                    新規登録
+                </Link>
             </div>
-        </div>
+        </AuthLayout>
     );
 }
