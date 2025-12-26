@@ -14,9 +14,9 @@ interface Section {
 }
 
 const placeholders: Record<JournalSectionName, string> = {
-    Mood: "例）今日は少し疲れているけど、悪くない。",
-    WhatIDid: "例）午前は仕事をして、午後はカフェで本を読んだ。",
-    ThoughtsPlans: "例）明日はジムに行って、そのあと友だちとご飯に行く。",
+    Mood: "例）I'm a bit tiredだけど、気分はpretty good。",
+    WhatIDid: "例）午前はミーティングして、午後はカフェでreading time。",
+    ThoughtsPlans: "例）明日はgymに行って、そのあと友だちとdinnerに行く予定。",
 };
 
 export default function Journal({ today }: PageProps<{ today: string }>) {
