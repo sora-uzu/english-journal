@@ -57,6 +57,7 @@ export default function JournalHistory() {
     const { props } = usePage<PageProps<Props>>();
     const { year, month, entries, keyPhrases } = props;
     const [showAllPhrases, setShowAllPhrases] = useState(false);
+    const hasAnyEntries = entries && entries.length > 0;
 
     const firstDay = new Date(year, month - 1, 1);
     const startWeekday = firstDay.getDay();
@@ -221,12 +222,28 @@ export default function JournalHistory() {
                                 </div>
 
                                 {keyPhrases.length === 0 ? (
-                                    <div className="mt-3 sm:mt-4 text-sm text-gray-600">
-                                        <p>今月はまだ日記がありません。</p>
-                                        <p className="mt-1 text-xs text-gray-500">
-                                            上の「New journal」から、今日の英語日記を書いてみませんか？
-                                        </p>
-                                    </div>
+                                    !hasAnyEntries ? (
+                                        <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                                NO JOURNALS YET
+                                            </p>
+                                            <p className="mt-2 text-sm text-slate-700">
+                                                まだ日記がありません。
+                                            </p>
+                                            <p className="mt-1 text-sm text-slate-700">
+                                                まずは New journal から、今日のことを日本語でも英語でも3分だけ書いてみましょう。
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <div className="mt-3 sm:mt-4 text-sm text-gray-600">
+                                            <p>
+                                                今月はまだキーフレーズがありません。
+                                            </p>
+                                            <p className="mt-1 text-xs text-gray-500">
+                                                上の「New journal」から、今日の英語日記を書いてみませんか？
+                                            </p>
+                                        </div>
+                                    )
                                 ) : (
                                     <>
                                         <div className="mt-3 sm:mt-4 space-y-3">
