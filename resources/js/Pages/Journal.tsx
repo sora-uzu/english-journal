@@ -5,7 +5,7 @@ import AppLayout from "@/Layouts/AppLayout";
 import JournalTextarea from "@/Components/JournalTextarea";
 import GlassButton from "@/Components/ui/GlassButton";
 import GlassCard from "@/Components/ui/GlassCard";
-import GlassModal from "@/Components/ui/GlassModal";
+import HowToGuideModal from "@/Components/HowToGuideModal";
 
 type JournalSectionName = "Mood" | "WhatIDid" | "ThoughtsPlans";
 
@@ -108,9 +108,9 @@ export default function Journal({ today }: PageProps<{ today: string }>) {
                                 </h1>
                                 <GlassButton
                                     type="button"
-                                    variant="ghost"
+                                    variant="secondary"
                                     onClick={openGuide}
-                                    className="h-8 w-8 rounded-full p-0 text-xs font-semibold text-slate-600"
+                                    className="h-9 w-9 p-0 text-sm text-slate-900"
                                     aria-label="How to use this journal"
                                 >
                                     ?
@@ -172,28 +172,7 @@ export default function Journal({ today }: PageProps<{ today: string }>) {
                     </GlassCard>
                 </div>
             </div>
-            <GlassModal open={showGuide} onClose={handleCloseGuide}>
-                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-900/85">
-                    HOW TO USE THIS JOURNAL
-                </h2>
-                <ul className="space-y-2 text-sm leading-relaxed text-slate-900/75">
-                    <li>・日本語でも英語でも、どちらで書いてもOKです。</li>
-                    <li>
-                        ・1日1つ、3分くらいで「今日の気分」や「やったこと」を自由に書いてください。
-                    </li>
-                    <li>
-                        ・Get feedback を押すと、自然な英語の文章と、その日のキーフレーズが返ってきます。
-                    </li>
-                </ul>
-
-                <GlassButton
-                    type="button"
-                    className="mt-5 w-full py-2.5"
-                    onClick={handleCloseGuide}
-                >
-                    Got it
-                </GlassButton>
-            </GlassModal>
+            <HowToGuideModal open={showGuide} onClose={handleCloseGuide} />
         </AppLayout>
     );
 }

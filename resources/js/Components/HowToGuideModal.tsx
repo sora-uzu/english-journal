@@ -94,7 +94,7 @@ export default function HowToGuideModal({
                     <GlassButton
                         type="button"
                         onClick={onClose}
-                        className="px-3 py-1 text-xs font-medium normal-case tracking-normal"
+                        className="w-full px-5 py-2.5 text-sm font-semibold normal-case tracking-normal"
                     >
                         Got it
                     </GlassButton>

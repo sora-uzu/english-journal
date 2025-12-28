@@ -26,7 +26,7 @@ export default function GlassModal({
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 px-4 py-6 backdrop-blur-sm sm:items-center"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4 py-6 backdrop-blur-sm"
             role="dialog"
             aria-modal="true"
             aria-labelledby={ariaLabelledby}
