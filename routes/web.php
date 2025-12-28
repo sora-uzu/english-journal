@@ -12,7 +12,7 @@ Route::get('/', function () {
     }
 
     return Inertia::render('Auth/Landing');
-});
+})->name('home');
 
 Route::get('/health', function () {
     return response()->json(['ok' => true], 200);
