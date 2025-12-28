@@ -14,6 +14,10 @@ Route::get('/', function () {
     return Inertia::render('Auth/Landing');
 });
 
+Route::get('/health', function () {
+    return response()->json(['ok' => true], 200);
+});
+
 Route::get('/dashboard', function () {
     return redirect()->route('journal.create');
 })->middleware(['auth', 'verified'])->name('dashboard');

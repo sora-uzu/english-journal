@@ -103,3 +103,11 @@ Quiet English Journal は、プレッシャーなく英語日記を続けるた�
   - `key_phrase_en / key_phrase_ja / key_phrase_reason_ja`
 
 ---
+
+## Keepalive の設定（Render スリープ回避）
+
+Render の Web Service が無アクセスでスリープしないように、GitHub Actions から `/health` を 10 分おきに叩きます。
+
+1. GitHub リポジトリ → Settings → Secrets and variables → Actions → Variables を開く
+2. `HEALTH_URL` を追加し、値に `https://english-journal.onrender.com/health` を設定
+3. Actions タブで `Keep Render Awake` が成功していることを確認
