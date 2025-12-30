@@ -158,16 +158,13 @@ export const journalToMarkdown = (entry: ExportEntry): string => {
             const after = normalizeText(correction.after).trim();
             const note = normalizeText(correction.note_ja).trim();
 
-            // Notionで読みやすいように Before / After を明示する
-            lines.push(`${index + 1}.`);
-            lines.push(`- Before: ${before}`);
-            lines.push(`- After: ${after}`);
+            lines.push(`${index + 1}) **Before:** ${before}  `);
+            lines.push(`   **After:** ${after}  `);
             if (note.length > 0) {
-                lines.push(`- Note(ja): ${note}`);
+                lines.push(`   **Note(ja):** ${note}`);
             }
-            // Add a blank line between items for readability
             if (index !== corrections.length - 1) {
-                lines.push("---");
+                lines.push("");
             }
         });
     }
