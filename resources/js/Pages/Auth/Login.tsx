@@ -2,7 +2,7 @@ import GlassButton from '@/Components/ui/GlassButton';
 import GlassInput from '@/Components/ui/GlassInput';
 import AuthLayout from '@/Layouts/AuthLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { FormEventHandler } from 'react';
+import { FormEventHandler, useState } from 'react';
 
 export default function Login({
     status,
@@ -16,11 +16,27 @@ export default function Login({
         email: '',
         password: '',
     });
+    const [submitError, setSubmitError] = useState<string | null>(null);
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
 
         post(route('login'), {
+            onStart: () => setSubmitError(null),
+            onSuccess: (page) => {
+                if (page.component === 'Auth/Login') {
+                    setSubmitError(
+                        'ログインに失敗しました。もう一度お試しください。',
+                    );
+                }
+            },
+            onError: (formErrors) => {
+                if (Object.keys(formErrors).length === 0) {
+                    setSubmitError(
+                        'ログインに失敗しました。通信状態をご確認のうえ、もう一度お試しください。',
+                    );
+                }
+            },
             onFinish: () => reset('password'),
         });
     };
@@ -35,6 +51,11 @@ export default function Login({
             {status && (
                 <p className="mb-4 rounded-2xl bg-emerald-50/70 px-3 py-2 text-xs text-emerald-700">
                     {status}
+                </p>
+            )}
+            {submitError && (
+                <p className="mb-4 rounded-2xl bg-rose-50/70 px-3 py-2 text-xs text-rose-700">
+                    {submitError}
                 </p>
             )}
 
