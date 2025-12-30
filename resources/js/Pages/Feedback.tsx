@@ -1,9 +1,11 @@
 import AppLayout from "@/Layouts/AppLayout";
 import GlassButton from "@/Components/ui/GlassButton";
 import GlassCard from "@/Components/ui/GlassCard";
+import GlassModal from "@/Components/ui/GlassModal";
 import { PageProps } from "@/types";
+import { downloadText, journalToMarkdown } from "@/lib/journalExport";
 import { Head } from "@inertiajs/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type FeedbackStatus = "ok" | "skipped_short" | "error";
 
@@ -135,6 +137,34 @@ const getFirstSentence = (text: string): string => {
     return match ? match[0].trim() : trimmed;
 };
 
+const copyTextToClipboard = async (text: string): Promise<boolean> => {
+    if (typeof window === "undefined") {
+        return false;
+    }
+
+    if (navigator.clipboard?.writeText) {
+        try {
+            await navigator.clipboard.writeText(text);
+            return true;
+        } catch (error) {
+            console.warn("Clipboard write failed, falling back.", error);
+        }
+    }
+
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    textarea.style.left = "-9999px";
+    document.body.appendChild(textarea);
+    textarea.select();
+    textarea.setSelectionRange(0, textarea.value.length);
+    const success = document.execCommand("copy");
+    textarea.remove();
+    return success;
+};
+
 const FeedbackTip = ({ correction }: { correction: Correction }) => (
     <GlassCard className="rounded-2xl p-4 shadow-[0_10px_30px_rgba(15,23,42,0.12)]">
         <div className="mb-2 flex items-center justify-between gap-2">
@@ -164,6 +194,75 @@ const FeedbackTip = ({ correction }: { correction: Correction }) => (
     </GlassCard>
 );
 
+type ExportModalProps = {
+    open: boolean;
+    onClose: () => void;
+    onCopy: () => void;
+    onDownload: () => void;
+};
+
+const ExportModal = ({
+    open,
+    onClose,
+    onCopy,
+    onDownload,
+}: ExportModalProps) => {
+    if (!open) {
+        return null;
+    }
+
+    return (
+        <GlassModal
+            open={open}
+            onClose={onClose}
+            containerClassName="max-w-md"
+            ariaLabelledby="export-title"
+        >
+            <div className="space-y-4">
+                <div>
+                    <h2
+                        id="export-title"
+                        className="text-sm font-semibold uppercase tracking-wide text-slate-900/85"
+                    >
+                        Export
+                    </h2>
+                    <p className="mt-1 text-xs text-slate-600">
+                        Copy a Notion-friendly markdown or download it as a
+                        file.
+                    </p>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                    <GlassButton
+                        type="button"
+                        className="w-full px-4 py-2.5 text-sm"
+                        onClick={onCopy}
+                    >
+                        Copy to Notion
+                    </GlassButton>
+                    <GlassButton
+                        type="button"
+                        variant="secondary"
+                        className="w-full px-4 py-2.5 text-sm"
+                        onClick={onDownload}
+                    >
+                        Download .md
+                    </GlassButton>
+                </div>
+                <div className="flex justify-end">
+                    <GlassButton
+                        type="button"
+                        variant="ghost"
+                        className="px-4 py-2 text-xs"
+                        onClick={onClose}
+                    >
+                        Close
+                    </GlassButton>
+                </div>
+            </div>
+        </GlassModal>
+    );
+};
+
 export default function Feedback({ entry }: FeedbackPageProps) {
     const { date, feedback, feedbackStatus } = entry;
     const corrections = feedback?.feedback_corrections ?? [];
@@ -183,6 +282,21 @@ export default function Feedback({ entry }: FeedbackPageProps) {
     );
     const ttsText = buildTtsText(englishText, englishJournalSections);
     const hasParsedEnglishSections = englishJournalSections.length > 0;
+    const [showExportModal, setShowExportModal] = useState(false);
+    const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!toastMessage) {
+            return;
+        }
+
+        const timer = window.setTimeout(() => {
+            setToastMessage(null);
+        }, 2200);
+
+        return () => window.clearTimeout(timer);
+    }, [toastMessage]);
+
     const handleSpeakClick = () => {
         if (typeof window === "undefined") {
             return;
@@ -210,6 +324,19 @@ export default function Feedback({ entry }: FeedbackPageProps) {
         utterance.onerror = () => setIsSpeaking(false);
         window.speechSynthesis.speak(utterance);
         setIsSpeaking(true);
+    };
+
+    const handleCopyToNotion = async () => {
+        const markdown = journalToMarkdown(entry);
+        const success = await copyTextToClipboard(markdown);
+        setToastMessage(success ? "Copied" : "Copy failed");
+    };
+
+    const handleDownloadMarkdown = () => {
+        const markdown = journalToMarkdown(entry);
+        const filename = `journal-${date}.md`;
+        downloadText(filename, markdown);
+        setToastMessage("Downloaded");
     };
 
     const journalMessage =
@@ -245,6 +372,14 @@ export default function Feedback({ entry }: FeedbackPageProps) {
         <AppLayout>
             <Head title="Feedback" />
 
+            {toastMessage && (
+                <div className="fixed inset-x-0 top-4 z-[60] flex justify-center px-4">
+                    <div className="rounded-full border border-emerald-200/70 bg-emerald-50/90 px-4 py-2 text-xs font-semibold text-emerald-700 shadow-[0_12px_30px_rgba(16,185,129,0.18)] backdrop-blur">
+                        {toastMessage}
+                    </div>
+                </div>
+            )}
+
             <div className="mx-auto w-full max-w-3xl px-4 pb-10 pt-6 sm:px-6 lg:px-8">
                 <p className="text-xs font-medium text-slate-500">{date}</p>
 
@@ -266,6 +401,14 @@ export default function Feedback({ entry }: FeedbackPageProps) {
                                 Your English journal
                             </h2>
                             <div className="flex items-center gap-2">
+                                <GlassButton
+                                    type="button"
+                                    variant="secondary"
+                                    className="rounded-full px-3.5 py-1.5 text-xs"
+                                    onClick={() => setShowExportModal(true)}
+                                >
+                                    Export
+                                </GlassButton>
                                 <GlassButton
                                     type="button"
                                     variant="secondary"
@@ -453,6 +596,12 @@ export default function Feedback({ entry }: FeedbackPageProps) {
                     </GlassCard>
                 </div>
             </div>
+            <ExportModal
+                open={showExportModal}
+                onClose={() => setShowExportModal(false)}
+                onCopy={handleCopyToNotion}
+                onDownload={handleDownloadMarkdown}
+            />
         </AppLayout>
     );
 }
