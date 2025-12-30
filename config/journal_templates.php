@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'default' => 'classic',
+    'default' => 'simple',
     'templates' => [
         'classic' => [
             'slug' => 'classic',

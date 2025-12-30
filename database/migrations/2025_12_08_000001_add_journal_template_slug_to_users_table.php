@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->string('journal_template_slug')->default('classic');
+            $table->string('journal_template_slug')->default('simple');
         });
     }
 
