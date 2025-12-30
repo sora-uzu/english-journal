@@ -12,6 +12,7 @@ class Journal extends Model
     protected $fillable = [
         'user_id',
         'date',
+        'sections',
         'sections_json',
         'english_text',
         'feedback_overall',
@@ -22,6 +23,7 @@ class Journal extends Model
     ];
 
     protected $casts = [
+        'sections' => 'array',
         'sections_json' => 'array',
         'feedback_corrections_json' => 'array',
     ];

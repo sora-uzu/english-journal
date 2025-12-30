@@ -4,10 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Journal;
 use App\Services\JournalFeedbackService;
+use App\Support\JournalTemplateCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class JournalController extends Controller
@@ -25,9 +28,18 @@ class JournalController extends Controller
     public function create()
     {
         $today = now()->toDateString();
+        $templateSlug = Auth::user()?->journal_template_slug ?? JournalTemplateCatalog::defaultSlug();
+        $template = JournalTemplateCatalog::find($templateSlug) ?? [
+            'slug' => $templateSlug,
+            'name' => 'Custom',
+            'sections' => [],
+        ];
+        $presetSavedMessage = session('preset_saved_message');
 
         return Inertia::render('Journal', [
             'today' => $today,
+            'template' => $template,
+            'presetSavedMessage' => $presetSavedMessage,
         ]);
     }
 
@@ -36,21 +48,48 @@ class JournalController extends Controller
      */
     public function store(Request $request)
     {
+        $templateSlug = (string) $request->input(
+            'template_slug',
+            Auth::user()?->journal_template_slug ?? JournalTemplateCatalog::defaultSlug()
+        );
+        $templates = JournalTemplateCatalog::templates();
+        $template = $templates[$templateSlug] ?? null;
+
         $validator = Validator::make($request->all(), [
             'date' => ['required', 'date'],
-            'sections' => ['required', 'array', 'size:3'],
-            'sections.*.name' => ['required', 'string'],
-            'sections.*.labelEn' => ['required', 'string'],
-            'sections.*.labelJa' => ['required', 'string'],
-            'sections.*.text' => ['nullable', 'string', 'max:'.self::SECTION_TEXT_MAX],
+            'template_slug' => ['required', 'string', Rule::in(array_keys($templates))],
+            'sections' => ['required', 'array'],
+            'sections.*.key' => ['required', 'string'],
+            'sections.*.value' => ['nullable', 'string', 'max:'.self::SECTION_TEXT_MAX],
         ], [
-            'sections.*.text.max' => '各セクションは'.self::SECTION_TEXT_MAX.'文字以内で入力してください。',
+            'sections.*.value.max' => '各セクションは'.self::SECTION_TEXT_MAX.'文字以内で入力してください。',
         ]);
 
-        $validator->after(function ($validator) {
+        $validator->after(function ($validator) use ($template) {
+            if (! $template) {
+                $validator->errors()->add('template_slug', 'セクションテンプレートの選択が正しくありません。');
+                return;
+            }
+
             $sections = $validator->getData()['sections'] ?? [];
+            $expectedKeys = collect($template['sections'] ?? [])
+                ->pluck('key')
+                ->values()
+                ->all();
+            $submittedKeys = collect($sections)
+                ->pluck('key')
+                ->values()
+                ->all();
+
+            if (count($expectedKeys) !== count($submittedKeys)
+                || array_diff($expectedKeys, $submittedKeys)
+                || array_diff($submittedKeys, $expectedKeys)
+            ) {
+                $validator->errors()->add('sections', 'セクション構成がテンプレートと一致しません。');
+            }
+
             $hasContent = collect($sections)->contains(function ($section) {
-                return trim($section['text'] ?? '') !== '';
+                return trim($section['value'] ?? '') !== '';
             });
 
             if (! $hasContent) {
@@ -61,27 +100,48 @@ class JournalController extends Controller
         $validated = $validator->validate();
 
         $userId = Auth::id();
-        $sections = $validated['sections'];
+        $sections = collect($template['sections'] ?? []);
+        $valuesByKey = collect($validated['sections'] ?? [])
+            ->mapWithKeys(fn ($section) => [$section['key'] => $section['value'] ?? '']);
 
-        $sectionsForLlm = collect($sections)
+        $sectionsToStore = $sections
+            ->map(function (array $section) use ($valuesByKey) {
+                return [
+                    'key' => $section['key'] ?? '',
+                    'title_en' => $section['title_en'] ?? null,
+                    'title_ja' => $section['title_ja'] ?? null,
+                    'placeholder_en' => $section['placeholder_en'] ?? null,
+                    'placeholder_ja' => $section['placeholder_ja'] ?? null,
+                    'order' => $section['order'] ?? 0,
+                    'input_type' => $section['input_type'] ?? 'textarea',
+                    'value' => (string) $valuesByKey->get($section['key'] ?? '', ''),
+                ];
+            })
+            ->values()
+            ->all();
+
+        $sectionsForLlm = collect($sectionsToStore)
             ->map(function (array $section) {
-                $text = trim((string) ($section['text'] ?? ''));
+                $text = trim((string) ($section['value'] ?? ''));
 
-                // 0〜2文字は「中身なし」とみなし、LLM入力から除外
+                // 0〜2文字は「中身なし」とみなす（ラベルは保持）
                 if (mb_strlen($text) <= 2) {
-                    return null;
+                    $text = '';
                 }
 
                 return [
-                    'name' => $section['name'],
-                    'labelEn' => $section['labelEn'],
-                    'labelJa' => $section['labelJa'],
-                    'text' => $text,
+                    'key' => $section['key'],
+                    'title_en' => $section['title_en'],
+                    'title_ja' => $section['title_ja'],
+                    'value' => $text,
                 ];
             })
-            ->filter()
             ->values()
             ->all();
+
+        $hasAnyLongSection = collect($sectionsToStore)->contains(function (array $section) {
+            return mb_strlen(trim((string) ($section['value'] ?? ''))) > 2;
+        });
 
         $feedback = [
             'english_text' => null,
@@ -92,7 +152,7 @@ class JournalController extends Controller
             'key_phrase_reason_ja' => null,
         ];
 
-        if (count($sectionsForLlm) === 0) {
+        if (! $hasAnyLongSection) {
             $feedback['feedback_overall'] = '今回は日記の内容がとても短かったため、英語フィードバックは生成していません。';
         } else {
             $feedback = array_merge(
@@ -108,7 +168,8 @@ class JournalController extends Controller
             ],
             array_merge(
                 [
-                    'sections_json' => $sections, // 元の入力をそのまま保存
+                    'sections' => $sectionsToStore, // 元の入力をそのまま保存
+                    'sections_json' => $sectionsToStore, // 互換用
                 ],
                 $feedback
             )
@@ -126,7 +187,7 @@ class JournalController extends Controller
             abort(403);
         }
 
-        $sections = $journal->sections_json ?? [];
+        $sections = $this->normalizeSections($journal->sections ?? $journal->sections_json ?? []);
         $hasAnyLongSection = $this->hasAnyLongSection($sections);
 
         $feedbackStatus = 'ok'; // ok | skipped_short | error
@@ -218,7 +279,7 @@ class JournalController extends Controller
     private function hasAnyLongSection(array $sections): bool
     {
         foreach ($sections as $section) {
-            $text = trim((string) ($section['text'] ?? ''));
+            $text = trim((string) ($section['value'] ?? $section['text'] ?? ''));
 
             if (mb_strlen($text) > 2) {
                 return true;
@@ -226,5 +287,48 @@ class JournalController extends Controller
         }
 
         return false;
+    }
+
+    private function normalizeSections(array $sections): array
+    {
+        if ($sections === []) {
+            return [];
+        }
+
+        if ($this->isNormalizedSections($sections)) {
+            return collect($sections)
+                ->sortBy('order')
+                ->values()
+                ->all();
+        }
+
+        return collect($sections)
+            ->map(function (array $section, int $index) {
+                $name = (string) ($section['name'] ?? 'section');
+
+                return [
+                    'key' => Str::snake($name),
+                    'title_en' => $section['labelEn'] ?? $name,
+                    'title_ja' => $section['labelJa'] ?? null,
+                    'placeholder_en' => null,
+                    'placeholder_ja' => null,
+                    'order' => $index + 1,
+                    'input_type' => 'textarea',
+                    'value' => (string) ($section['text'] ?? ''),
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    private function isNormalizedSections(array $sections): bool
+    {
+        $first = $sections[0] ?? null;
+
+        if (! is_array($first)) {
+            return false;
+        }
+
+        return array_key_exists('key', $first) && array_key_exists('value', $first);
     }
 }

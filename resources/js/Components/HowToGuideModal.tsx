@@ -31,7 +31,7 @@ export default function HowToGuideModal({
                 <ul className="mt-4 space-y-2 text-sm leading-relaxed text-slate-900/75">
                     <li>・日本語でも英語でも、どちらで書いてもOKです。</li>
                     <li>
-                        ・1日1つ、3分くらいで「今日の気分」や「やったこと」を自由に書いてください。
+                        ・セクション構成は「Sections」からプリセットを選んで切り替えできます。
                     </li>
                     <li>
                         ・Get feedback を押すと、自然な英語の文章と、その日のキーフレーズが返ってきます。

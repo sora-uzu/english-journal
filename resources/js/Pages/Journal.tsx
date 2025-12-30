@@ -7,51 +7,73 @@ import GlassButton from "@/Components/ui/GlassButton";
 import GlassCard from "@/Components/ui/GlassCard";
 import HowToGuideModal from "@/Components/HowToGuideModal";
 
-type JournalSectionName = "Mood" | "WhatIDid" | "ThoughtsPlans";
-
-interface Section {
-    name: JournalSectionName;
-    labelEn: string;
-    labelJa: string;
-    text: string;
-}
-
-const placeholders: Record<JournalSectionName, string> = {
-    Mood: "例）I'm a bit tiredだけど、気分はpretty good。",
-    WhatIDid: "例）午前はミーティングして、午後はカフェでreading time。",
-    ThoughtsPlans: "例）明日はgymに行って、そのあと友だちとdinnerに行く予定。",
+type JournalTemplateSection = {
+    key: string;
+    title_en: string;
+    title_ja?: string;
+    placeholder_en?: string;
+    placeholder_ja?: string;
+    order: number;
+    input_type: "textarea";
 };
 
-export default function Journal({ today }: PageProps<{ today: string }>) {
-    const initialSections: Section[] = [
-        {
-            name: "Mood",
-            labelEn: "Mood",
-            labelJa: "気分",
-            text: "",
-        },
-        {
-            name: "WhatIDid",
-            labelEn: "What I did",
-            labelJa: "今日やったこと",
-            text: "",
-        },
-        {
-            name: "ThoughtsPlans",
-            labelEn: "Thoughts & Plans",
-            labelJa: "考えごと・明日やりたいこと",
-            text: "",
-        },
-    ];
+type JournalTemplate = {
+    slug: string;
+    name: string;
+    description?: string;
+    sections: JournalTemplateSection[];
+};
+
+type Section = JournalTemplateSection & {
+    value: string;
+};
+
+export default function Journal({
+    today,
+    template,
+    presetSavedMessage,
+}: PageProps<{
+    today: string;
+    template?: JournalTemplate;
+    presetSavedMessage?: string | null;
+}>) {
+    const resolvedTemplate: JournalTemplate = template ?? {
+        slug: "classic",
+        name: "Classic",
+        sections: [],
+    };
+    const initialSections: Section[] = [...resolvedTemplate.sections]
+        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+        .map((section) => ({
+            ...section,
+            value: "",
+        }));
 
     const { data, setData, post, processing, errors } = useForm<{
         date: string;
+        template_slug: string;
         sections: Section[];
     }>({
         date: today,
+        template_slug: resolvedTemplate.slug,
         sections: initialSections,
     });
     const [showGuide, setShowGuide] = React.useState(false);
+    const [toastMessage, setToastMessage] = React.useState<string | null>(
+        presetSavedMessage ?? null
+    );
+
+    React.useEffect(() => {
+        if (!toastMessage) {
+            return;
+        }
+
+        const timer = window.setTimeout(() => {
+            setToastMessage(null);
+        }, 2400);
+
+        return () => window.clearTimeout(timer);
+    }, [toastMessage]);
 
     React.useEffect(() => {
         if (typeof window === "undefined") {
@@ -81,7 +103,7 @@ export default function Journal({ today }: PageProps<{ today: string }>) {
         setData(
             "sections",
             data.sections.map((s, i) =>
-                i === index ? { ...s, text: value } : s
+                i === index ? { ...s, value } : s
             )
         );
     };
@@ -94,6 +116,14 @@ export default function Journal({ today }: PageProps<{ today: string }>) {
     return (
         <AppLayout>
             <Head title="Journal" />
+
+            {toastMessage && (
+                <div className="fixed inset-x-0 top-4 z-50 flex justify-center px-4">
+                    <div className="rounded-full border border-emerald-200/70 bg-emerald-50/90 px-4 py-2 text-xs font-semibold text-emerald-700 shadow-[0_12px_30px_rgba(16,185,129,0.18)] backdrop-blur">
+                        {toastMessage}
+                    </div>
+                </div>
+            )}
 
             <div className="pt-2 pb-4 sm:py-5 md:py-6">
                 <div className="mx-auto max-w-xl sm:px-6 lg:px-8">
@@ -121,22 +151,23 @@ export default function Journal({ today }: PageProps<{ today: string }>) {
                             </p>
 
                             {data.sections.map((section, index) => {
-                                const errorKey = `sections.${index}.text` as const;
+                                const errorKey = `sections.${index}.value` as const;
                                 const errorMessage = errors[errorKey];
-                                const fieldId = `section-${section.name}-${index}`;
+                                const fieldId = `section-${section.key}-${index}`;
 
                                 return (
                                     <JournalTextarea
-                                        key={section.name}
-                                        label={section.labelEn}
-                                        subLabel={section.labelJa}
+                                        key={section.key}
+                                        label={section.title_en}
+                                        subLabel={section.title_ja}
                                         name={fieldId}
-                                        value={section.text}
+                                        value={section.value}
                                         onChange={(value) =>
                                             handleChangeSection(index, value)
                                         }
                                         placeholder={
-                                            placeholders[section.name] ??
+                                            section.placeholder_ja ??
+                                            section.placeholder_en ??
                                             "英語でも日本語でも自由に書いてOKです。"
                                         }
                                         error={errorMessage}

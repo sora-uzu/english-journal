@@ -79,6 +79,11 @@ export default function AppLayout({
 
                                     <Dropdown.Content contentClasses="py-1 bg-white/80 backdrop-blur">
                                         <Dropdown.Link
+                                            href={route('settings.sections.edit')}
+                                        >
+                                            Sections
+                                        </Dropdown.Link>
+                                        <Dropdown.Link
                                             href={route('profile.edit')}
                                         >
                                             Profile
@@ -193,6 +198,13 @@ export default function AppLayout({
                             onClick={closeMobileMenu}
                         >
                             History
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            href={route('settings.sections.edit')}
+                            active={url.startsWith('/settings/sections')}
+                            onClick={closeMobileMenu}
+                        >
+                            Sections
                         </ResponsiveNavLink>
                     </div>
                     <div className="space-y-2 border-t border-white/40 px-4 py-4">

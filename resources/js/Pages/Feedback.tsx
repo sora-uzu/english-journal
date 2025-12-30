@@ -5,19 +5,14 @@ import { PageProps } from "@/types";
 import { Head } from "@inertiajs/react";
 import { useState } from "react";
 
-type JournalSectionName = "Mood" | "WhatIDid" | "ThoughtsPlans";
 type FeedbackStatus = "ok" | "skipped_short" | "error";
-type EnglishJournalSections = {
-    mood?: string;
-    whatIDid?: string;
-    thoughtsPlans?: string;
-};
 
 interface Section {
-    name: JournalSectionName;
-    labelEn?: string;
-    labelJa?: string;
-    text: string;
+    key: string;
+    title_en?: string;
+    title_ja?: string;
+    value: string;
+    order?: number;
 }
 
 interface Correction {
@@ -51,32 +46,77 @@ type FeedbackPageProps = PageProps<{
     };
 }>;
 
-const parseEnglishJournal = (englishText: string): EnglishJournalSections => {
-    const pattern =
-        /^Mood:\s*([\s\S]*?)\s*What I did:\s*([\s\S]*?)\s*Thoughts & Plans:\s*([\s\S]*)$/;
-    const match = englishText.match(pattern);
+const escapeRegExp = (value: string): string =>
+    value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-    if (!match) {
-        return {};
+const parseEnglishJournal = (
+    englishText: string,
+    sections: Section[]
+): DisplaySection[] => {
+    if (!englishText.trim() || sections.length === 0) {
+        return [];
     }
 
-    const [, mood, whatIDid, thoughtsPlans] = match;
+    const labels = sections.map(
+        (section) => section.title_en ?? section.title_ja ?? section.key
+    );
+    const sortedLabels = [...labels].sort((a, b) => b.length - a.length);
+    const labelMap = new Map(
+        labels.map((label) => [label.toLowerCase(), label])
+    );
+    const labelPattern = sortedLabels.map(escapeRegExp).join("|");
 
-    return {
-        mood: mood.trim() || undefined,
-        whatIDid: whatIDid.trim() || undefined,
-        thoughtsPlans: thoughtsPlans.trim() || undefined,
-    };
+    if (!labelPattern) {
+        return [];
+    }
+
+    const regex = new RegExp(`(${labelPattern})\\s*:\\s*`, "gi");
+    const matches: Array<{ label: string; start: number; index: number }> = [];
+    let match: RegExpExecArray | null;
+
+    while ((match = regex.exec(englishText)) !== null) {
+        const matchedLabel = labelMap.get(match[1].toLowerCase());
+        if (!matchedLabel) {
+            continue;
+        }
+        matches.push({
+            label: matchedLabel,
+            start: match.index + match[0].length,
+            index: match.index,
+        });
+    }
+
+    if (matches.length === 0) {
+        return [];
+    }
+
+    const textByLabel = new Map<string, string>();
+    matches.forEach((current, idx) => {
+        const next = matches[idx + 1];
+        const end = next ? next.index : englishText.length;
+        const text = englishText.slice(current.start, end).trim();
+        textByLabel.set(current.label, text);
+    });
+
+    return sections
+        .map((section) => {
+            const label = section.title_en ?? section.title_ja ?? section.key;
+            return {
+                id: section.key,
+                label,
+                text: textByLabel.get(label) ?? "",
+            };
+        })
+        .filter((section) => section.text.trim().length > 0);
 };
 
 const buildTtsText = (
     englishText: string | null | undefined,
-    sections: EnglishJournalSections
+    sections: DisplaySection[]
 ): string => {
-    const parts: string[] = [];
-    if (sections.mood) parts.push(sections.mood);
-    if (sections.whatIDid) parts.push(sections.whatIDid);
-    if (sections.thoughtsPlans) parts.push(sections.thoughtsPlans);
+    const parts = sections
+        .map((section) => section.text.trim())
+        .filter(Boolean);
 
     if (parts.length > 0) {
         return parts.join(" ");
@@ -133,13 +173,16 @@ export default function Feedback({ entry }: FeedbackPageProps) {
         feedbackStatus === "ok" && Boolean(feedback && feedback.key_phrase_en);
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [showAllTips, setShowAllTips] = useState(false);
+    const sortedSections = [...entry.sections].sort(
+        (a, b) => (a.order ?? 0) - (b.order ?? 0)
+    );
     const englishText = feedback?.english_text ?? "";
-    const englishSections = parseEnglishJournal(englishText);
-    const ttsText = buildTtsText(englishText, englishSections);
-    const hasParsedEnglishSections =
-        Boolean(englishSections.mood) ||
-        Boolean(englishSections.whatIDid) ||
-        Boolean(englishSections.thoughtsPlans);
+    const englishJournalSections = parseEnglishJournal(
+        englishText,
+        sortedSections
+    );
+    const ttsText = buildTtsText(englishText, englishJournalSections);
+    const hasParsedEnglishSections = englishJournalSections.length > 0;
     const handleSpeakClick = () => {
         if (typeof window === "undefined") {
             return;
@@ -185,29 +228,11 @@ export default function Feedback({ entry }: FeedbackPageProps) {
             ? getFirstSentence(summarySource)
             : summarySource;
 
-    const englishJournalSections: DisplaySection[] = [
-        {
-            id: "mood",
-            label: "Mood",
-            text: englishSections.mood ?? "",
-        },
-        {
-            id: "what-i-did",
-            label: "What I did",
-            text: englishSections.whatIDid ?? "",
-        },
-        {
-            id: "thoughts-plans",
-            label: "Thoughts & Plans",
-            text: englishSections.thoughtsPlans ?? "",
-        },
-    ].filter((section) => section.text.trim().length > 0);
-
-    const fallbackJournalSections: DisplaySection[] = entry.sections
+    const fallbackJournalSections: DisplaySection[] = sortedSections
         .map((section) => ({
-            id: section.name,
-            label: section.labelEn ?? section.labelJa ?? section.name,
-            text: section.text,
+            id: section.key,
+            label: section.title_en ?? section.title_ja ?? section.key,
+            text: section.value,
         }))
         .filter((section) => section.text.trim().length > 0);
 

@@ -79,11 +79,11 @@ class JournalFeedbackService
         $lines = [];
 
         foreach ($sections as $section) {
-            $labelEn = $section['labelEn'] ?? $section['name'] ?? 'Section';
-            $labelJa = $section['labelJa'] ?? null;
-            $text = $section['text'] ?? '';
+            $labelEn = $section['title_en'] ?? null;
+            $labelJa = $section['title_ja'] ?? null;
+            $label = $labelEn ?? $labelJa ?? $section['key'] ?? 'Section';
+            $text = $section['value'] ?? '';
 
-            $label = $labelJa ? "{$labelEn} ({$labelJa})" : $labelEn;
             $lines[] = trim($label . ': ' . $text);
         }
 
@@ -94,7 +94,7 @@ class JournalFeedbackService
     {
         return <<<PROMPT
 あなたは、日本人英語学習者のための「英語日記コーチ」です。
-ユーザーが日本語や簡単な英語で書いた日記（Mood / What I did / Thoughts & Plans などのセクション形式）が別メッセージで渡されます。
+ユーザーが日本語や簡単な英語で書いた日記（複数のセクション形式）が別メッセージで渡されます。
 
 あなたの仕事は、その日記をもとに
 1. セクション付きの英語日記を作る
@@ -131,20 +131,17 @@ class JournalFeedbackService
 
 1-1. 形式
 
-- 次の 3 セクションを **この順番** で必ず含めてください：
-
-  - Mood:
-  - What I did:
-  - Thoughts & Plans:
-
+- 入力メッセージには、セクションラベルと内容が順番に並んでいます。
+  - 例：`Mood: ...` のような形式
+- english_text では、**入力に出てきたセクションラベルをそのまま使い、同じ順番で** 出力してください。
 - それぞれのラベルのあとに半角スペースを入れ、そのセクションの英文を続けます。
 - セクション同士は 1 つのスペース、または改行で区切って構いません。
 - 例（1行で書く場合）：
-  - `Mood: I feel better today. What I did: I went to a café and worked on my app. Thoughts & Plans: Tomorrow, I want to go to the gym.`
+  - `Mood: I feel better today. Highlights: I finished a task. Tomorrow: I want to rest.`
 
 1-2. 内容の作り方
 
-- ユーザーの日記（各セクション：Mood / What I did / Thoughts & Plans）を読み、
+- ユーザーの日記（複数セクション）を読み、
   それぞれの内容をもとに **自然な英語** にしてください。
 - セクションごとに 1〜2文程度のシンプルな英文にまとめます。
 - ユーザーが日本語で書いている部分は、意味を保ったまま自然な英語に翻訳します。

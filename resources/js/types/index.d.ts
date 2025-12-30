@@ -3,6 +3,7 @@ export interface User {
     name: string;
     email: string;
     email_verified_at?: string;
+    journal_template_slug?: string;
 }
 
 export type PageProps<
