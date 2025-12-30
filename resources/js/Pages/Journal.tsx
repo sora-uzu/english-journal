@@ -194,8 +194,7 @@ export default function Journal({
                                 </GlassButton>
                                 {processing && (
                                     <p className="text-xs text-slate-500">
-                                        Generating your English feedback… this may
-                                        take a few seconds.
+                                        英語フィードバックを生成しています。少しお待ちください。
                                     </p>
                                 )}
                             </div>
