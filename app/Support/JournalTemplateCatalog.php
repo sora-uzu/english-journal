@@ -74,6 +74,6 @@ class JournalTemplateCatalog
 
     public static function defaultSlug(): string
     {
-        return (string) config('journal_templates.default', 'classic');
+        return (string) config('journal_templates.default', 'simple');
     }
 }

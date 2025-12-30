@@ -38,8 +38,8 @@ export default function Journal({
     presetSavedMessage?: string | null;
 }>) {
     const resolvedTemplate: JournalTemplate = template ?? {
-        slug: "classic",
-        name: "Classic",
+        slug: "simple",
+        name: "Simple",
         sections: [],
     };
     const initialSections: Section[] = [...resolvedTemplate.sections]
