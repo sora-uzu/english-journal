@@ -1,6 +1,7 @@
 type ExportSection = {
     key: string;
     title_en?: string | null;
+    title_ja?: string | null;
     value?: string | null;
     order?: number | null;
 };
@@ -30,6 +31,78 @@ const normalizeText = (value: string | null | undefined): string =>
 
 const isShortText = (value: string | null | undefined): boolean =>
     normalizeText(value).trim().length <= 2;
+
+const escapeRegExp = (value: string): string =>
+    value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const getSectionLabel = (section: ExportSection): string =>
+    section.title_en?.trim() || section.title_ja?.trim() || section.key;
+
+const splitEnglishTextByLabels = (
+    englishText: string,
+    sections: ExportSection[]
+): Array<{ label: string; text: string }> => {
+    const text = normalizeText(englishText).trim();
+    if (!text || sections.length === 0) {
+        return [];
+    }
+
+    const labels = sections
+        .map((section) => getSectionLabel(section))
+        .filter((label) => label.length > 0);
+
+    if (labels.length === 0) {
+        return [];
+    }
+
+    const sortedLabels = [...labels].sort((a, b) => b.length - a.length);
+    const labelMap = new Map(
+        labels.map((label) => [label.toLowerCase(), label])
+    );
+    const labelPattern = sortedLabels.map(escapeRegExp).join("|");
+
+    if (!labelPattern) {
+        return [];
+    }
+
+    const regex = new RegExp(`(${labelPattern})\\s*:\\s*`, "gi");
+    const matches: Array<{ label: string; start: number; index: number }> = [];
+    let match: RegExpExecArray | null;
+
+    while ((match = regex.exec(text)) !== null) {
+        const matchedLabel = labelMap.get(match[1].toLowerCase());
+        if (!matchedLabel) {
+            continue;
+        }
+        matches.push({
+            label: matchedLabel,
+            start: match.index + match[0].length,
+            index: match.index,
+        });
+    }
+
+    if (matches.length === 0) {
+        return [];
+    }
+
+    const textByLabel = new Map<string, string>();
+    matches.forEach((current, idx) => {
+        const next = matches[idx + 1];
+        const end = next ? next.index : text.length;
+        const body = text.slice(current.start, end).trim();
+        textByLabel.set(current.label, body);
+    });
+
+    return sections
+        .map((section) => {
+            const label = getSectionLabel(section);
+            return {
+                label,
+                text: textByLabel.get(label) ?? "",
+            };
+        })
+        .filter((section) => section.text.trim().length > 0);
+};
 
 const extractSummaryEn = (englishText: string): string => {
     const text = normalizeText(englishText).trim();
@@ -73,38 +146,27 @@ const formatSectionAsBullets = (label: string, text: string): string[] => {
     return lines;
 };
 
-const formatEnglishCleanAsBullets = (englishText: string): string[] => {
-    const text = normalizeText(englishText).replace(/\s+/g, " ").trim();
+const formatEnglishCleanAsBullets = (
+    englishText: string,
+    sections: ExportSection[]
+): string[] => {
+    const text = normalizeText(englishText).trim();
     if (text.length === 0) return [];
 
-    const markers = [
-        { prefix: "Mood:", label: "Mood" },
-        { prefix: "What I did:", label: "What I did" },
-        { prefix: "Thoughts & Plans:", label: "Thoughts & Plans" },
-    ];
-
-    // Split into chunks starting at known prefixes
-    const chunks = text
-        .split(/(?=Mood:|What I did:|Thoughts & Plans:)/g)
-        .map((c) => c.trim())
-        .filter(Boolean);
-
-    // If it doesn't contain prefixes, just return one bullet
-    const hasKnownPrefix = chunks.some((c) => markers.some((m) => c.startsWith(m.prefix)));
-    if (!hasKnownPrefix) {
-        return [`- ${text}`];
+    const labeledSections = splitEnglishTextByLabels(text, sections);
+    if (labeledSections.length === 0) {
+        const compact = text.replace(/\s+/g, " ").trim();
+        return compact.length > 0 ? [`- ${compact}`] : [];
     }
 
     const out: string[] = [];
-    for (const chunk of chunks) {
-        const marker = markers.find((m) => chunk.startsWith(m.prefix));
-        if (!marker) continue;
-        const body = chunk.slice(marker.prefix.length).trim();
-        if (body.length === 0) continue;
-        out.push(`- **${marker.label}:** ${body}`);
-    }
+    labeledSections.forEach((section) => {
+        out.push(...formatSectionAsBullets(section.label, section.text));
+    });
 
-    return out.length > 0 ? out : [`- ${text}`];
+    return out.length > 0
+        ? out
+        : [`- ${text.replace(/\s+/g, " ").trim()}`];
 };
 
 export const journalToMarkdown = (entry: ExportEntry): string => {
@@ -134,7 +196,10 @@ export const journalToMarkdown = (entry: ExportEntry): string => {
 
     lines.push("");
     lines.push("## Clean English");
-    const englishLines = formatEnglishCleanAsBullets(englishText);
+    const englishLines = formatEnglishCleanAsBullets(
+        englishText,
+        entry.sections ?? []
+    );
     if (englishLines.length > 0) {
         lines.push(...englishLines);
     }

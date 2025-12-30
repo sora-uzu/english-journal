@@ -132,12 +132,12 @@ class JournalFeedbackService
 1-1. 形式
 
 - 入力メッセージには、セクションラベルと内容が順番に並んでいます。
-  - 例：`Mood: ...` のような形式
+  - 例：`How I feel: ...` のような形式
 - english_text では、**入力に出てきたセクションラベルをそのまま使い、同じ順番で** 出力してください。
 - それぞれのラベルのあとに半角スペースを入れ、そのセクションの英文を続けます。
 - セクション同士は 1 つのスペース、または改行で区切って構いません。
 - 例（1行で書く場合）：
-  - `Mood: I feel better today. Highlights: I finished a task. Tomorrow: I want to rest.`
+  - `How I feel: I feel better today. Good things: I finished a task. Tomorrow: I want to rest.`
 
 1-2. 内容の作り方
 
@@ -158,7 +158,7 @@ class JournalFeedbackService
 - そのセクションについては **内容を補わず、英文を作らないでください。**
 - 具体的には：
   - ラベルだけを残し、後ろは空にします。
-  - 例：`Mood:`（その後に文章を続けない）
+- 例：`How I feel:`（その後に文章を続けない）
 - こうしたケースで、「I feel okay.」や「I did something.」のような
   曖昧な英文を勝手に作らないでください。
 

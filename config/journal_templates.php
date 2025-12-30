@@ -6,12 +6,12 @@ return [
         'classic' => [
             'slug' => 'classic',
             'name' => 'Classic',
-            'description' => 'Mood / What I did / Thoughts & Plans',
+            'description' => 'How I feel / What happened / Tomorrow',
             'sections' => [
                 [
                     'key' => 'mood',
-                    'title_en' => 'Mood',
-                    'title_ja' => '気分',
+                    'title_en' => 'How I feel',
+                    'title_ja' => '今日の気分',
                     'placeholder_en' => "e.g., ちょっと疲れたけど I'm feeling pretty good.",
                     'placeholder_ja' => '例）ちょっと疲れたけど I feel pretty good.',
                     'order' => 1,
@@ -19,8 +19,8 @@ return [
                 ],
                 [
                     'key' => 'what_i_did',
-                    'title_en' => 'What I did',
-                    'title_ja' => '今日やったこと',
+                    'title_en' => 'What happened',
+                    'title_ja' => '今日のこと',
                     'placeholder_en' => 'e.g., 午前はmeetingして、午後はカフェでreading.',
                     'placeholder_ja' => '例）午前はmeetingして、午後はカフェでreading.',
                     'order' => 2,
@@ -28,8 +28,8 @@ return [
                 ],
                 [
                     'key' => 'thoughts_plans',
-                    'title_en' => 'Thoughts & Plans',
-                    'title_ja' => '考えごと・明日の予定',
+                    'title_en' => 'Tomorrow',
+                    'title_ja' => '明日のこと',
                     'placeholder_en' => 'e.g., 明日はgymに行って、そのあと友だちとdinner.',
                     'placeholder_ja' => '例）明日はgymに行って、そのあと友だちとdinner.',
                     'order' => 3,
@@ -56,12 +56,12 @@ return [
         'daily_log' => [
             'slug' => 'daily_log',
             'name' => 'Daily Log',
-            'description' => 'Mood / Highlights / Challenges / Learnings / Tomorrow',
+            'description' => 'How I feel / Good things / Hard things / Learnings / Tomorrow',
             'sections' => [
                 [
                     'key' => 'mood',
-                    'title_en' => 'Mood',
-                    'title_ja' => '気分',
+                    'title_en' => 'How I feel',
+                    'title_ja' => '今日の気分',
                     'placeholder_en' => 'e.g., 今日はlow energyだけど気分はok.',
                     'placeholder_ja' => '例）今日はlow energyだけど気分はok.',
                     'order' => 1,
@@ -69,8 +69,8 @@ return [
                 ],
                 [
                     'key' => 'highlights',
-                    'title_en' => 'Highlights',
-                    'title_ja' => '良かったこと',
+                    'title_en' => 'Good things',
+                    'title_ja' => 'よかったこと',
                     'placeholder_en' => 'e.g., 夕方に友だちとcoffeeしてrelaxできた.',
                     'placeholder_ja' => '例）夕方に友だちとcoffeeしてrelaxできた.',
                     'order' => 2,
@@ -78,7 +78,7 @@ return [
                 ],
                 [
                     'key' => 'challenges',
-                    'title_en' => 'Challenges',
+                    'title_en' => 'Hard things',
                     'title_ja' => '大変だったこと',
                     'placeholder_en' => 'e.g., 仕事がtoughで集中が切れた.',
                     'placeholder_ja' => '例）仕事がtoughで集中が切れた.',
@@ -88,7 +88,7 @@ return [
                 [
                     'key' => 'learnings',
                     'title_en' => 'Learnings',
-                    'title_ja' => '学び・気づき',
+                    'title_ja' => '学び',
                     'placeholder_en' => 'e.g., small breaksすると集中が続くと気づいた.',
                     'placeholder_ja' => '例）small breaksすると集中が続くと気づいた.',
                     'order' => 4,
@@ -97,7 +97,7 @@ return [
                 [
                     'key' => 'tomorrow',
                     'title_en' => 'Tomorrow',
-                    'title_ja' => '明日やりたいこと',
+                    'title_ja' => '明日のこと',
                     'placeholder_en' => 'e.g., 明日はearlyに起きてwalkしたい.',
                     'placeholder_ja' => '例）明日はearlyに起きてwalkしたい.',
                     'order' => 5,
