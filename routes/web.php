@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\JournalPresetController;
 use App\Http\Controllers\JournalSectionSettingsController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Auth;
@@ -36,6 +37,13 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/journal', [JournalController::class, 'store'])->name('journal.store');
     Route::get('/journal/history', [JournalController::class, 'history'])->name('journal.history');
     Route::get('/journal/{journal}', [JournalController::class, 'show'])->name('journal.show');
+});
+
+Route::middleware('auth')->prefix('api')->group(function () {
+    Route::get('/presets', [JournalPresetController::class, 'index'])->name('api.presets.index');
+    Route::post('/presets/custom', [JournalPresetController::class, 'store'])->name('api.presets.custom.store');
+    Route::put('/presets/custom', [JournalPresetController::class, 'update'])->name('api.presets.custom.update');
+    Route::put('/presets/active', [JournalPresetController::class, 'updateActive'])->name('api.presets.active.update');
 });
 
 require __DIR__.'/auth.php';

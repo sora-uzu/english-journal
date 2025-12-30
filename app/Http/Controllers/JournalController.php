@@ -28,8 +28,9 @@ class JournalController extends Controller
     public function create()
     {
         $today = now()->toDateString();
-        $templateSlug = Auth::user()?->journal_template_slug ?? JournalTemplateCatalog::defaultSlug();
-        $template = JournalTemplateCatalog::find($templateSlug) ?? [
+        $user = Auth::user();
+        $templateSlug = $user?->journal_template_slug ?? JournalTemplateCatalog::defaultSlug();
+        $template = JournalTemplateCatalog::findForUser($user, $templateSlug) ?? [
             'slug' => $templateSlug,
             'name' => 'Custom',
             'sections' => [],
@@ -52,7 +53,7 @@ class JournalController extends Controller
             'template_slug',
             Auth::user()?->journal_template_slug ?? JournalTemplateCatalog::defaultSlug()
         );
-        $templates = JournalTemplateCatalog::templates();
+        $templates = JournalTemplateCatalog::templatesForUser(Auth::user());
         $template = $templates[$templateSlug] ?? null;
 
         $validator = Validator::make($request->all(), [

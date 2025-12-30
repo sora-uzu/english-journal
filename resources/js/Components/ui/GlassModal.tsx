@@ -34,10 +34,12 @@ export default function GlassModal({
         >
             <div className={containerClasses} onClick={(e) => e.stopPropagation()}>
                 <div
-                    className={`relative overflow-hidden rounded-3xl border border-white/60 bg-white/65 shadow-[0_28px_90px_-45px_rgba(2,6,23,0.40)] ring-1 ring-slate-900/5 backdrop-blur-3xl ${className}`}
+                    className={`relative max-h-[calc(100vh-3rem)] overflow-hidden rounded-3xl border border-white/60 bg-white/65 shadow-[0_28px_90px_-45px_rgba(2,6,23,0.40)] ring-1 ring-slate-900/5 backdrop-blur-3xl ${className}`}
                 >
                     <div className="pointer-events-none absolute inset-0 rounded-3xl bg-[radial-gradient(120%_80%_at_15%_10%,rgba(255,255,255,0.75),rgba(255,255,255,0)_55%),linear-gradient(115deg,rgba(255,255,255,0.28)_0%,rgba(255,255,255,0.06)_35%,rgba(255,255,255,0)_55%)] opacity-40" />
-                    <div className="relative p-5 sm:p-6">{children}</div>
+                    <div className="relative max-h-[calc(100vh-3rem)] overflow-y-auto p-5 sm:p-6">
+                        {children}
+                    </div>
                 </div>
             </div>
         </div>

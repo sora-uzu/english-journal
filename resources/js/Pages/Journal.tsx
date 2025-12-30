@@ -168,7 +168,7 @@ export default function Journal({
                                         placeholder={
                                             section.placeholder_ja ??
                                             section.placeholder_en ??
-                                            "英語でも日本語でも自由に書いてOKです。"
+                                            ""
                                         }
                                         error={errorMessage}
                                         disabled={processing}

@@ -14,16 +14,21 @@ class JournalSectionSettingsController extends Controller
     public function edit(Request $request)
     {
         $user = $request->user();
+        $templates = JournalTemplateCatalog::templatesForUser($user);
+        $currentTemplateSlug = JournalTemplateCatalog::resolveActiveSlug(
+            $user?->journal_template_slug,
+            $templates
+        );
 
         return Inertia::render('Settings/Sections', [
-            'templates' => JournalTemplateCatalog::all(),
-            'currentTemplateSlug' => $user?->journal_template_slug ?? JournalTemplateCatalog::defaultSlug(),
+            'templates' => array_values($templates),
+            'currentTemplateSlug' => $currentTemplateSlug,
         ]);
     }
 
     public function update(Request $request)
     {
-        $templates = JournalTemplateCatalog::templates();
+        $templates = JournalTemplateCatalog::templatesForUser($request->user());
 
         $validated = Validator::make($request->all(), [
             'template_slug' => ['required', 'string', Rule::in(array_keys($templates))],
