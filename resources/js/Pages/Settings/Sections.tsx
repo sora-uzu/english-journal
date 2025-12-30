@@ -90,15 +90,29 @@ export default function Sections({
                                             <GlassCard
                                                 className={`h-full p-4 transition group-hover:-translate-y-0.5 group-hover:shadow-[0_20px_45px_rgba(15,23,42,0.2)] ${
                                                     isSelected
-                                                        ? "border-violet-200/80 ring-2 ring-violet-300/60"
+                                                        ? "border-violet-200/80 bg-white/70 ring-2 ring-violet-300/60"
                                                         : "border-white/60"
                                                 }`}
                                             >
                                                 <div className="flex items-start justify-between gap-3">
                                                     <div>
-                                                        <h4 className="text-sm font-semibold text-slate-900">
-                                                            {template.name}
-                                                        </h4>
+                                                        <div className="flex items-center gap-2">
+                                                            <span
+                                                                aria-hidden="true"
+                                                                className={`flex h-4 w-4 items-center justify-center rounded-full border ${
+                                                                    isSelected
+                                                                        ? "border-violet-400 bg-violet-100"
+                                                                        : "border-slate-300"
+                                                                }`}
+                                                            >
+                                                                {isSelected && (
+                                                                    <span className="h-2 w-2 rounded-full bg-violet-500" />
+                                                                )}
+                                                            </span>
+                                                            <h4 className="text-sm font-semibold text-slate-900">
+                                                                {template.name}
+                                                            </h4>
+                                                        </div>
                                                         {template.description && (
                                                             <p className="mt-1 text-xs text-slate-500">
                                                                 {template.description}

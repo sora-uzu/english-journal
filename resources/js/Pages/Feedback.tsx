@@ -227,8 +227,7 @@ const ExportModal = ({
                         Export
                     </h2>
                     <p className="mt-1 text-xs text-slate-600">
-                        Copy a Notion-friendly markdown or download it as a
-                        file.
+                        Notion向けMarkdownをコピーするか、ファイルでダウンロードできます。
                     </p>
                 </div>
                 <div className="grid gap-2 sm:grid-cols-2">
@@ -381,7 +380,23 @@ export default function Feedback({ entry }: FeedbackPageProps) {
             )}
 
             <div className="mx-auto w-full max-w-3xl px-4 pb-10 pt-6 sm:px-6 lg:px-8">
-                <p className="text-xs font-medium text-slate-500">{date}</p>
+                <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs font-medium text-slate-500">{date}</p>
+                    <GlassButton
+                        type="button"
+                        variant="secondary"
+                        className="rounded-full px-3.5 py-1.5 text-xs"
+                        onClick={() => setShowExportModal(true)}
+                    >
+                        <span
+                            aria-hidden="true"
+                            className="mr-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/60 text-[13px]"
+                        >
+                            📤
+                        </span>
+                        Export
+                    </GlassButton>
+                </div>
 
                 <div className="mt-4 space-y-6 sm:space-y-8">
                     <GlassCard className="border-violet-200/60 bg-white/25 p-4 sm:p-5">
@@ -398,7 +413,7 @@ export default function Feedback({ entry }: FeedbackPageProps) {
                     <GlassCard className="p-5 sm:p-6">
                         <header className="mb-4">
                             <h2 className="text-base font-semibold text-slate-900">
-                                Journal
+                                Original Journal
                             </h2>
                         </header>
 
@@ -435,14 +450,6 @@ export default function Feedback({ entry }: FeedbackPageProps) {
                                 Clean English
                             </h2>
                             <div className="flex items-center gap-2">
-                                <GlassButton
-                                    type="button"
-                                    variant="secondary"
-                                    className="rounded-full px-3.5 py-1.5 text-xs"
-                                    onClick={() => setShowExportModal(true)}
-                                >
-                                    Export
-                                </GlassButton>
                                 <GlassButton
                                     type="button"
                                     variant="secondary"
