@@ -2,16 +2,17 @@ name: Keep Render Awake
 
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "2-59/5 * * * *"
   workflow_dispatch:
 
 jobs:
   ping:
     runs-on: ubuntu-latest
+    timeout-minutes: 2
     steps:
       - name: Ping health endpoint
         run: |
-          http_code="$(curl -fsSL --show-error --retry 3 --retry-delay 5 -o /dev/null -w "%{http_code}" "$HEALTH_URL")"
+          http_code="$(curl -fsSL --show-error --connect-timeout 5 --max-time 10 --retry 3 --retry-delay 5 -o /dev/null -w "%{http_code}" "$HEALTH_URL")"
           status=$?
           if [ "$status" -ne 0 ]; then
             echo "keepalive: curl failed (exit $status, http ${http_code:-unknown})" >&2
