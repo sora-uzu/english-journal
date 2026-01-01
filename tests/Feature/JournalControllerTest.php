@@ -1,0 +1,186 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Journal;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
+use Inertia\Testing\AssertableInertia as Assert;
+use Tests\TestCase;
+
+class JournalControllerTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private function fakeOpenAiResponse(array $overrides = []): array
+    {
+        $payload = array_merge([
+            'english_text' => 'Free writing: I felt good today.',
+            'feedback_overall' => 'Simple and clear. Watch article usage.',
+            'feedback_corrections' => [
+                [
+                    'before' => 'I go to store.',
+                    'after' => 'I went to the store.',
+                    'note_ja' => 'Use past tense for completed actions.',
+                ],
+            ],
+            'key_phrase_en' => 'take a break',
+            'key_phrase_ja' => 'take a break',
+            'key_phrase_reason_ja' => 'Useful everyday phrase.',
+        ], $overrides);
+
+        Http::fake([
+            '*' => Http::response([
+                'choices' => [
+                    ['message' => ['content' => json_encode($payload)]],
+                ],
+            ], 200),
+        ]);
+
+        return $payload;
+    }
+
+    /**
+     * @return array<int, array<string, string>>
+     */
+    private function simpleSections(string $value): array
+    {
+        return [
+            ['key' => 'free_writing', 'value' => $value],
+        ];
+    }
+
+    public function test_user_can_store_journal_entry_with_feedback(): void
+    {
+        // 正常に保存され、フィードバックが反映されること
+        $user = User::factory()->create();
+        $payload = $this->fakeOpenAiResponse();
+
+        $response = $this->actingAs($user)->post(route('journal.store'), [
+            'date' => '2025-01-01',
+            'template_slug' => 'simple',
+            'sections' => $this->simpleSections('I wrote a short entry.'),
+        ]);
+
+        $journal = Journal::first();
+        $this->assertNotNull($journal);
+
+        $response->assertRedirect(route('journal.show', $journal));
+
+        $this->assertSame($user->id, $journal->user_id);
+        $this->assertSame('2025-01-01', $journal->date);
+        $this->assertSame('free_writing', $journal->sections[0]['key']);
+        $this->assertSame('I wrote a short entry.', $journal->sections[0]['value']);
+        $this->assertSame($payload['english_text'], $journal->english_text);
+        $this->assertSame($payload['feedback_overall'], $journal->feedback_overall);
+        $this->assertSame($payload['feedback_corrections'], $journal->feedback_corrections_json);
+        $this->assertSame($payload['key_phrase_en'], $journal->key_phrase_en);
+        $this->assertSame($payload['key_phrase_ja'], $journal->key_phrase_ja);
+    }
+
+    public function test_store_requires_at_least_one_non_empty_section(): void
+    {
+        // 空入力ではバリデーションエラーになること
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post(route('journal.store'), [
+            'date' => '2025-01-02',
+            'template_slug' => 'simple',
+            'sections' => $this->simpleSections('   '),
+        ]);
+
+        $response->assertSessionHasErrors(['sections']);
+        $this->assertDatabaseCount('journals', 0);
+    }
+
+    public function test_store_rejects_sections_that_do_not_match_template(): void
+    {
+        // テンプレートと違うセクション構成は拒否されること
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post(route('journal.store'), [
+            'date' => '2025-01-03',
+            'template_slug' => 'simple',
+            'sections' => [
+                ['key' => 'mood', 'value' => 'Mismatch key'],
+            ],
+        ]);
+
+        $response->assertSessionHasErrors(['sections']);
+        $this->assertDatabaseCount('journals', 0);
+    }
+
+    public function test_show_forbidden_for_other_users_journal(): void
+    {
+        // 他ユーザーの日記は閲覧できないこと
+        $owner = User::factory()->create();
+        $viewer = User::factory()->create();
+
+        $sections = [
+            [
+                'key' => 'free_writing',
+                'title_en' => 'Free writing',
+                'title_ja' => null,
+                'placeholder_en' => null,
+                'placeholder_ja' => null,
+                'order' => 1,
+                'input_type' => 'textarea',
+                'value' => 'Hello',
+            ],
+        ];
+
+        $journal = Journal::create([
+            'user_id' => $owner->id,
+            'date' => '2025-01-04',
+            'sections' => $sections,
+            'sections_json' => $sections,
+            'english_text' => 'Free writing: Hello.',
+        ]);
+
+        $this->actingAs($viewer)
+            ->get(route('journal.show', $journal))
+            ->assertForbidden();
+    }
+
+    public function test_show_marks_skipped_when_no_long_sections(): void
+    {
+        // 短文のみの場合は skipped_short 判定になること
+        $user = User::factory()->create();
+
+        $sections = [
+            [
+                'key' => 'free_writing',
+                'title_en' => 'Free writing',
+                'title_ja' => null,
+                'placeholder_en' => null,
+                'placeholder_ja' => null,
+                'order' => 1,
+                'input_type' => 'textarea',
+                'value' => 'ok',
+            ],
+        ];
+
+        $journal = Journal::create([
+            'user_id' => $user->id,
+            'date' => '2025-01-05',
+            'sections' => $sections,
+            'sections_json' => $sections,
+            'english_text' => null,
+            'feedback_overall' => null,
+            'feedback_corrections_json' => [],
+            'key_phrase_en' => null,
+            'key_phrase_ja' => null,
+            'key_phrase_reason_ja' => null,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('journal.show', $journal))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Feedback')
+                ->where('entry.feedbackStatus', 'skipped_short')
+                ->where('entry.id', $journal->id)
+            );
+    }
+}
