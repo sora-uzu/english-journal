@@ -90,6 +90,44 @@ class JournalPresetControllerTest extends TestCase
         $this->assertDatabaseCount('journal_presets', 0);
     }
 
+    public function test_store_rejects_japanese_title_en(): void
+    {
+        // title_enに日本語が含まれるとバリデーションエラーになること
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->postJson(route('api.presets.custom.store'), [
+            'sections' => [
+                [
+                    'title_en' => '朝のこと',
+                    'title_ja' => '朝のこと',
+                ],
+            ],
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['sections.0.title_en']);
+        $this->assertDatabaseCount('journal_presets', 0);
+    }
+
+    public function test_store_returns_conflict_when_custom_preset_exists(): void
+    {
+        // 既にカスタムがある場合は409になること
+        $user = User::factory()->create();
+
+        JournalPreset::create([
+            'user_id' => $user->id,
+            'sections' => $this->presetSections(),
+        ]);
+
+        $response = $this->actingAs($user)->postJson(route('api.presets.custom.store'), [
+            'sections' => $this->presetSections(),
+        ]);
+
+        $response->assertStatus(409);
+        $response->assertJsonPath('message', 'Custom preset already exists.');
+        $this->assertDatabaseCount('journal_presets', 1);
+    }
+
     public function test_update_returns_not_found_when_preset_missing(): void
     {
         // 未作成のカスタム更新は404になること

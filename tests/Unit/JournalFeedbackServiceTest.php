@@ -105,6 +105,79 @@ class JournalFeedbackServiceTest extends TestCase
         $this->assertSame('英語フィードバックの生成に失敗しました。', $result['feedback_overall']);
     }
 
+    public function test_generate_returns_empty_corrections_when_missing(): void
+    {
+        // corrections未返却でも空配列で返ること
+        Http::fake([
+            '*' => Http::response([
+                'choices' => [
+                    ['message' => ['content' => json_encode([
+                        'english_text' => 'Ok.',
+                        'feedback_overall' => 'Nice.',
+                        'key_phrase_en' => null,
+                        'key_phrase_ja' => null,
+                        'key_phrase_reason_ja' => null,
+                    ])]],
+                ],
+            ], 200),
+        ]);
+
+        $service = new JournalFeedbackService();
+        $result = $service->generate($this->sampleSections());
+
+        $this->assertSame([], $result['feedback_corrections_json']);
+    }
+
+    public function test_generate_returns_fallback_when_response_content_is_missing(): void
+    {
+        // contentが欠落している場合はフォールバックになること
+        Http::fake([
+            '*' => Http::response([
+                'choices' => [
+                    ['message' => []],
+                ],
+            ], 200),
+        ]);
+
+        $service = new JournalFeedbackService();
+        $result = $service->generate($this->sampleSections());
+
+        $this->assertNull($result['english_text']);
+        $this->assertSame('英語フィードバックの生成に失敗しました。', $result['feedback_overall']);
+    }
+
+    public function test_generate_returns_fallback_when_response_content_is_empty(): void
+    {
+        // contentが空文字の場合はフォールバックになること
+        Http::fake([
+            '*' => Http::response([
+                'choices' => [
+                    ['message' => ['content' => '']],
+                ],
+            ], 200),
+        ]);
+
+        $service = new JournalFeedbackService();
+        $result = $service->generate($this->sampleSections());
+
+        $this->assertNull($result['english_text']);
+        $this->assertSame('英語フィードバックの生成に失敗しました。', $result['feedback_overall']);
+    }
+
+    public function test_generate_returns_fallback_on_http_exception(): void
+    {
+        // 例外発生時はフォールバックになること
+        Http::fake(function () {
+            throw new \RuntimeException('boom');
+        });
+
+        $service = new JournalFeedbackService();
+        $result = $service->generate($this->sampleSections());
+
+        $this->assertNull($result['english_text']);
+        $this->assertSame('英語フィードバックの生成に失敗しました。', $result['feedback_overall']);
+    }
+
     public function test_generate_builds_prompt_with_label_fallbacks(): void
     {
         // ラベルの優先順と空セクションの扱いが反映されること

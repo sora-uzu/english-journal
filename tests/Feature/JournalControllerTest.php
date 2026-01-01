@@ -183,4 +183,69 @@ class JournalControllerTest extends TestCase
                 ->where('entry.id', $journal->id)
             );
     }
+
+    public function test_show_marks_error_when_feedback_missing_for_long_entry(): void
+    {
+        // 長文があるのにフィードバックがない場合は error 判定になること
+        $user = User::factory()->create();
+
+        $sections = [
+            [
+                'key' => 'free_writing',
+                'title_en' => 'Free writing',
+                'title_ja' => null,
+                'placeholder_en' => null,
+                'placeholder_ja' => null,
+                'order' => 1,
+                'input_type' => 'textarea',
+                'value' => 'This is a longer entry.',
+            ],
+        ];
+
+        $journal = Journal::create([
+            'user_id' => $user->id,
+            'date' => '2025-01-06',
+            'sections' => $sections,
+            'sections_json' => $sections,
+            'english_text' => null,
+            'feedback_overall' => null,
+            'feedback_corrections_json' => [],
+            'key_phrase_en' => null,
+            'key_phrase_ja' => null,
+            'key_phrase_reason_ja' => null,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('journal.show', $journal))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Feedback')
+                ->where('entry.feedbackStatus', 'error')
+                ->where('entry.id', $journal->id)
+            );
+    }
+
+    public function test_store_skips_feedback_for_short_sections(): void
+    {
+        // 短文のみの場合は生成をスキップすること
+        Http::fake();
+
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post(route('journal.store'), [
+            'date' => '2025-01-07',
+            'template_slug' => 'simple',
+            'sections' => $this->simpleSections('ok'),
+        ]);
+
+        $journal = Journal::first();
+
+        $response->assertRedirect(route('journal.show', $journal));
+        $this->assertSame(
+            '今回は日記の内容がとても短かったため、英語フィードバックは生成していません。',
+            $journal->feedback_overall
+        );
+        $this->assertNull($journal->english_text);
+        Http::assertNothingSent();
+    }
 }
