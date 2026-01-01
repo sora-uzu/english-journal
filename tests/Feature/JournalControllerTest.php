@@ -90,6 +90,7 @@ class JournalControllerTest extends TestCase
             'sections' => $this->simpleSections('   '),
         ]);
 
+        $response->assertStatus(302);
         $response->assertSessionHasErrors(['sections']);
         $this->assertDatabaseCount('journals', 0);
     }
@@ -107,6 +108,7 @@ class JournalControllerTest extends TestCase
             ],
         ]);
 
+        $response->assertStatus(302);
         $response->assertSessionHasErrors(['sections']);
         $this->assertDatabaseCount('journals', 0);
     }

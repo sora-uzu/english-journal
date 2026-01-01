@@ -51,8 +51,9 @@ class EmailVerificationTest extends TestCase
             ['id' => $user->id, 'hash' => sha1('wrong-email')]
         );
 
-        $this->actingAs($user)->get($verificationUrl);
+        $response = $this->actingAs($user)->get($verificationUrl);
 
+        $response->assertForbidden();
         $this->assertFalse($user->fresh()->hasVerifiedEmail());
     }
 }

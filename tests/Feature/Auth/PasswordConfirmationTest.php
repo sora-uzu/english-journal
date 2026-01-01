@@ -39,6 +39,7 @@ class PasswordConfirmationTest extends TestCase
             'password' => 'wrong-password',
         ]);
 
+        $response->assertStatus(302);
         $response->assertSessionHasErrors();
     }
 }

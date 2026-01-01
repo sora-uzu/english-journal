@@ -53,6 +53,7 @@ class JournalSectionSettingsControllerTest extends TestCase
             'template_slug' => 'invalid',
         ]);
 
+        $response->assertStatus(302);
         $response->assertSessionHasErrors(['template_slug']);
         $this->assertSame('daily_log', $user->refresh()->journal_template_slug);
     }

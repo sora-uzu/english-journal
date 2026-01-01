@@ -27,5 +27,6 @@ class RegistrationTest extends TestCase
 
         $this->assertAuthenticated();
         $response->assertRedirect(route('journal.create', absolute: false));
+        $this->assertDatabaseHas('users', ['email' => 'test@example.com']);
     }
 }
