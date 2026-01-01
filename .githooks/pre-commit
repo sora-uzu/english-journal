@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+run_step() {
+    local label="$1"
+    shift
+
+    echo "==> ${label}"
+    if "$@"; then
+        echo "==> ${label}: OK"
+        return 0
+    fi
+
+    echo "==> ${label}: FAILED"
+    echo "Commit stopped. Fix the errors above and try again."
+    exit 1
+}
+
+arch_prefix=()
+if command -v arch >/dev/null 2>&1; then
+    if arch -arm64 /usr/bin/true >/dev/null 2>&1; then
+        # Ensure Node runs as arm64 on Apple Silicon (avoids Rollup optional dep mismatch).
+        arch_prefix=(arch -arm64)
+    fi
+fi
+
+run_step "PHP unit tests" php artisan test --testsuite=Unit
+run_step "JS tests (quick)" "${arch_prefix[@]}" npm run test:js:run

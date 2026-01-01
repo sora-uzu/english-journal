@@ -142,6 +142,24 @@ npm run dev
 
 ---
 
+## Git hooks（ローカル）
+
+コミット時は軽めのテスト、プッシュ時はフルテストを自動実行します。
+チーム共有のために `.git/hooks` は使わず、`core.hooksPath` で `.githooks` を参照します。
+
+### セットアップ
+
+```bash
+bash scripts/setup-hooks.sh
+```
+
+### 実行内容
+
+- pre-commit: `php artisan test --testsuite=Unit` + `npm run test:js:run`
+- pre-push: `php artisan test` + `npm run test:js:run`
+
+---
+
 ## デプロイ（Render）メモ
 
 - Render の Environment に `.env` 相当を設定（リポジトリに `.env` は push しない）
