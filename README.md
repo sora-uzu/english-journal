@@ -116,6 +116,11 @@ php artisan key:generate
 - `OPENAI_MODEL`（任意、デフォルト: `gpt-4o-mini`）
 - `OPENAI_BASE_URL`（任意、デフォルト: `https://api.openai.com/v1`）
 
+セッション（ローカル）：
+
+- `SESSION_DRIVER=file` のままでOK（`.env.example` もこの設定）
+- 本番(Render)は `SESSION_DRIVER=database` を推奨（後述）
+
 DB（SQLite例）：
 
 ```bash
@@ -164,6 +169,7 @@ bash scripts/setup-hooks.sh
 
 - Render の Environment に `.env` 相当を設定（リポジトリに `.env` は push しない）
 - `OPENAI_API_KEY` を設定し忘れると、英語フィードバック生成が失敗します
+- セッション永続化のため `SESSION_DRIVER=database` を設定し、デプロイ後に `php artisan migrate --force` を実行
 
 ---
 
