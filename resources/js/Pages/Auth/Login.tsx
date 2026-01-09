@@ -1,6 +1,7 @@
 import GlassButton from '@/Components/ui/GlassButton';
 import GlassInput from '@/Components/ui/GlassInput';
 import AuthLayout from '@/Layouts/AuthLayout';
+import Checkbox from '@/Components/Checkbox';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { FormEventHandler, useState } from 'react';
 
@@ -12,9 +13,11 @@ export default function Login({
     const { data, setData, post, processing, errors, reset } = useForm<{
         email: string;
         password: string;
+        remember: boolean;
     }>({
         email: '',
         password: '',
+        remember: true,
     });
     const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -92,6 +95,20 @@ export default function Login({
                             パスワードをお忘れの方
                         </Link>
                     </div>
+                </div>
+
+                <div className="flex items-center gap-2 text-xs text-slate-600">
+                    <Checkbox
+                        id="remember"
+                        name="remember"
+                        checked={data.remember}
+                        onChange={(e) =>
+                            setData('remember', e.target.checked)
+                        }
+                    />
+                    <label htmlFor="remember" className="select-none">
+                        ログイン状態を保持する
+                    </label>
                 </div>
 
                 <GlassButton
