@@ -4,8 +4,17 @@ import GlassCard from "@/Components/ui/GlassCard";
 import GlassInput from "@/Components/ui/GlassInput";
 import GlassModal from "@/Components/ui/GlassModal";
 import { PageProps } from "@/types";
-import { Head, useForm } from "@inertiajs/react";
+import { Head, useForm, usePage } from "@inertiajs/react";
 import { FormEvent, useMemo, useState } from "react";
+import {
+    JournalTemplate,
+    JournalTemplateSection,
+    loadGuestActiveTemplateSlug,
+    loadGuestCustomTemplate,
+    saveGuestActiveTemplateSlug,
+    saveGuestCustomTemplate,
+    saveGuestPresetMessage,
+} from "@/lib/journalTemplates";
 
 const CUSTOM_SLUG = "custom";
 const MIN_SECTIONS = 1;
@@ -13,22 +22,8 @@ const MAX_SECTIONS = 5;
 const JAPANESE_PATTERN =
     /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uF900-\uFAFF\uFF65-\uFF9F]/;
 
-interface TemplateSection {
-    key: string;
-    title_en: string;
-    title_ja?: string;
-    placeholder_en?: string;
-    placeholder_ja?: string;
-    order: number;
-    input_type: "textarea";
-}
-
-interface Template {
-    slug: string;
-    name: string;
-    description?: string;
-    sections: TemplateSection[];
-}
+type TemplateSection = JournalTemplateSection;
+type Template = JournalTemplate;
 
 type EditableSection = {
     key: string;
@@ -40,17 +35,38 @@ export default function Sections({
     templates,
     currentTemplateSlug,
 }: PageProps<{ templates: Template[]; currentTemplateSlug: string }>) {
+    const { props } = usePage<PageProps>();
+    const isGuest = !props.auth.user;
     const systemTemplates = useMemo(
         () => templates.filter((template) => template.slug !== CUSTOM_SLUG),
         [templates]
     );
     const [availableTemplates, setAvailableTemplates] = useState<Template[]>(
-        templates
+        () => {
+            if (!isGuest) {
+                return templates;
+            }
+
+            const guestCustom = loadGuestCustomTemplate();
+            if (!guestCustom) {
+                return templates;
+            }
+
+            return [
+                ...templates.filter(
+                    (template) => template.slug !== guestCustom.slug
+                ),
+                guestCustom,
+            ];
+        }
     );
 
+    const initialGuestSlug = isGuest ? loadGuestActiveTemplateSlug() : null;
     const { data, setData, put, processing, errors } = useForm({
-        template_slug: currentTemplateSlug,
+        template_slug: initialGuestSlug ?? currentTemplateSlug,
     });
+    const [guestSaving, setGuestSaving] = useState(false);
+    const isSaving = processing || guestSaving;
 
     const [customEditorOpen, setCustomEditorOpen] = useState(false);
     const [customMode, setCustomMode] = useState<"create" | "edit">("create");
@@ -71,6 +87,26 @@ export default function Sections({
 
     const handleSubmit = (event: FormEvent) => {
         event.preventDefault();
+
+        if (isGuest) {
+            setGuestSaving(true);
+            saveGuestActiveTemplateSlug(data.template_slug);
+
+            const templateName =
+                availableTemplates.find(
+                    (template) => template.slug === data.template_slug
+                )?.name ?? null;
+
+            saveGuestPresetMessage(
+                templateName
+                    ? `プリセット「${templateName}」を保存しました。`
+                    : "プリセットを保存しました。"
+            );
+
+            window.location.href = route("journal.create");
+            return;
+        }
+
         put(route("settings.sections.update"));
     };
 
@@ -285,6 +321,33 @@ export default function Sections({
 
         setCustomProcessing(true);
         setCustomErrorMessage(null);
+
+        if (isGuest) {
+            const customTemplate: Template = {
+                slug: CUSTOM_SLUG,
+                name: "Custom",
+                description: "Your own section layout",
+                sections: customSections.map((section, index) => ({
+                    key: section.key,
+                    title_en: section.title_en.trim(),
+                    title_ja: section.title_ja.trim(),
+                    order: index + 1,
+                    input_type: "textarea",
+                })),
+            };
+
+            saveGuestCustomTemplate(customTemplate);
+            updateCustomTemplate(customTemplate);
+
+            if (setActiveOnSave) {
+                setData("template_slug", CUSTOM_SLUG);
+                saveGuestActiveTemplateSlug(CUSTOM_SLUG);
+            }
+
+            setCustomEditorOpen(false);
+            setCustomProcessing(false);
+            return;
+        }
 
         const payload = {
             sections: customSections.map((section) => ({
@@ -544,10 +607,10 @@ export default function Sections({
                             <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
                                 <GlassButton
                                     type="submit"
-                                    disabled={processing}
+                                    disabled={isSaving}
                                     className="px-4 py-2.5"
                                 >
-                                    {processing ? "Saving..." : "Save preset"}
+                                    {isSaving ? "Saving..." : "Save preset"}
                                 </GlassButton>
                             </div>
                         </form>

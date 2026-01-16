@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Journal;
-use App\Services\JournalFeedbackService;
+use App\Services\JournalFeedbackComposer;
 use App\Support\JournalTemplateCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,7 +18,7 @@ class JournalController extends Controller
     private const SECTION_TEXT_MAX = 500;
 
     public function __construct(
-        private JournalFeedbackService $feedbackService,
+        private JournalFeedbackComposer $feedbackComposer,
     ) {
     }
 
@@ -30,8 +30,13 @@ class JournalController extends Controller
         $today = now()->toDateString();
         $user = Auth::user();
         $templateSlug = $user?->journal_template_slug ?? JournalTemplateCatalog::defaultSlug();
-        $template = JournalTemplateCatalog::findForUser($user, $templateSlug) ?? [
-            'slug' => $templateSlug,
+        $templates = JournalTemplateCatalog::templatesForUser($user);
+        $currentTemplateSlug = JournalTemplateCatalog::resolveActiveSlug(
+            $templateSlug,
+            $templates
+        );
+        $template = JournalTemplateCatalog::findForUser($user, $currentTemplateSlug) ?? [
+            'slug' => $currentTemplateSlug,
             'name' => 'Custom',
             'sections' => [],
         ];
@@ -40,6 +45,8 @@ class JournalController extends Controller
         return Inertia::render('Journal', [
             'today' => $today,
             'template' => $template,
+            'templates' => array_values($templates),
+            'currentTemplateSlug' => $currentTemplateSlug,
             'presetSavedMessage' => $presetSavedMessage,
         ]);
     }
@@ -121,46 +128,7 @@ class JournalController extends Controller
             ->values()
             ->all();
 
-        $sectionsForLlm = collect($sectionsToStore)
-            ->map(function (array $section) {
-                $text = trim((string) ($section['value'] ?? ''));
-
-                // 0〜2文字は「中身なし」とみなす（ラベルは保持）
-                if (mb_strlen($text) <= 2) {
-                    $text = '';
-                }
-
-                return [
-                    'key' => $section['key'],
-                    'title_en' => $section['title_en'],
-                    'title_ja' => $section['title_ja'],
-                    'value' => $text,
-                ];
-            })
-            ->values()
-            ->all();
-
-        $hasAnyLongSection = collect($sectionsToStore)->contains(function (array $section) {
-            return mb_strlen(trim((string) ($section['value'] ?? ''))) > 2;
-        });
-
-        $feedback = [
-            'english_text' => null,
-            'feedback_overall' => null,
-            'feedback_corrections_json' => [],
-            'key_phrase_en' => null,
-            'key_phrase_ja' => null,
-            'key_phrase_reason_ja' => null,
-        ];
-
-        if (! $hasAnyLongSection) {
-            $feedback['feedback_overall'] = '今回は日記の内容がとても短かったため、英語フィードバックは生成していません。';
-        } else {
-            $feedback = array_merge(
-                $feedback,
-                $this->feedbackService->generate($sectionsForLlm),
-            );
-        }
+        $feedback = $this->feedbackComposer->build($sectionsToStore)['feedback'];
 
         $journal = Journal::updateOrCreate(
             [

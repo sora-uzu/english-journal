@@ -1,28 +1,19 @@
 import React from "react";
-import { Head, useForm } from "@inertiajs/react";
+import { Head, router, useForm, usePage } from "@inertiajs/react";
 import { PageProps } from "@/types";
 import AppLayout from "@/Layouts/AppLayout";
 import JournalTextarea from "@/Components/JournalTextarea";
 import GlassButton from "@/Components/ui/GlassButton";
 import GlassCard from "@/Components/ui/GlassCard";
 import HowToGuideModal from "@/Components/HowToGuideModal";
-
-type JournalTemplateSection = {
-    key: string;
-    title_en: string;
-    title_ja?: string;
-    placeholder_en?: string;
-    placeholder_ja?: string;
-    order: number;
-    input_type: "textarea";
-};
-
-type JournalTemplate = {
-    slug: string;
-    name: string;
-    description?: string;
-    sections: JournalTemplateSection[];
-};
+import {
+    JournalTemplate,
+    JournalTemplateSection,
+    consumeGuestPresetMessage,
+    loadGuestActiveTemplateSlug,
+    loadGuestCustomTemplate,
+} from "@/lib/journalTemplates";
+import { saveGuestFeedbackEntry } from "@/lib/guestFeedbackStorage";
 
 type Section = JournalTemplateSection & {
     value: string;
@@ -31,25 +22,71 @@ type Section = JournalTemplateSection & {
 export default function Journal({
     today,
     template,
+    templates,
+    currentTemplateSlug,
     presetSavedMessage,
 }: PageProps<{
     today: string;
     template?: JournalTemplate;
+    templates?: JournalTemplate[];
+    currentTemplateSlug?: string;
     presetSavedMessage?: string | null;
 }>) {
-    const resolvedTemplate: JournalTemplate = template ?? {
-        slug: "simple",
-        name: "Simple",
-        sections: [],
-    };
-    const initialSections: Section[] = [...resolvedTemplate.sections]
-        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-        .map((section) => ({
-            ...section,
-            value: "",
-        }));
+    const { props } = usePage<PageProps>();
+    const isGuest = !props.auth.user;
+    const guestCustomTemplate = isGuest ? loadGuestCustomTemplate() : null;
+    const storedSlug = isGuest ? loadGuestActiveTemplateSlug() : null;
 
-    const { data, setData, post, processing, errors } = useForm<{
+    const availableTemplates = React.useMemo(() => {
+        const baseTemplates = templates ?? (template ? [template] : []);
+        if (!guestCustomTemplate) {
+            return baseTemplates;
+        }
+
+        return [
+            ...baseTemplates.filter(
+                (item) => item.slug !== guestCustomTemplate.slug
+            ),
+            guestCustomTemplate,
+        ];
+    }, [templates, template, guestCustomTemplate]);
+
+    const activeSlug =
+        storedSlug ?? currentTemplateSlug ?? template?.slug ?? "simple";
+    const resolvedTemplate = React.useMemo(() => {
+        const match = availableTemplates.find(
+            (candidate) => candidate.slug === activeSlug
+        );
+        return (
+            match ??
+            template ?? {
+                slug: "simple",
+                name: "Simple",
+                sections: [],
+            }
+        );
+    }, [activeSlug, availableTemplates, template]);
+
+    const initialSections: Section[] = React.useMemo(
+        () =>
+            [...resolvedTemplate.sections]
+                .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+                .map((section) => ({
+                    ...section,
+                    value: "",
+                })),
+        [resolvedTemplate]
+    );
+
+    const {
+        data,
+        setData,
+        post,
+        processing,
+        errors,
+        setError,
+        clearErrors,
+    } = useForm<{
         date: string;
         template_slug: string;
         sections: Section[];
@@ -62,6 +99,8 @@ export default function Journal({
     const [toastMessage, setToastMessage] = React.useState<string | null>(
         presetSavedMessage ?? null
     );
+    const [guestProcessing, setGuestProcessing] = React.useState(false);
+    const isProcessing = processing || guestProcessing;
 
     React.useEffect(() => {
         if (!toastMessage) {
@@ -74,6 +113,17 @@ export default function Journal({
 
         return () => window.clearTimeout(timer);
     }, [toastMessage]);
+
+    React.useEffect(() => {
+        if (!isGuest) {
+            return;
+        }
+
+        const guestMessage = consumeGuestPresetMessage();
+        if (guestMessage) {
+            setToastMessage(guestMessage);
+        }
+    }, [isGuest]);
 
     React.useEffect(() => {
         if (typeof window === "undefined") {
@@ -108,9 +158,119 @@ export default function Journal({
         );
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const mapGuestErrors = (payload: Record<string, string[]>) => {
+        const mapped: Record<string, string> = {};
+
+        Object.entries(payload).forEach(([field, messages]) => {
+            if (!messages[0]) {
+                return;
+            }
+
+            if (field === "sections_json") {
+                mapped.sections = messages[0];
+                return;
+            }
+
+            if (field === "template_slug") {
+                mapped.sections = messages[0];
+                return;
+            }
+
+            if (field.startsWith("sections_json.")) {
+                const parts = field.split(".");
+                const index = Number(parts[1] ?? -1);
+                if (!Number.isNaN(index)) {
+                    mapped[`sections.${index}.value`] = messages[0];
+                }
+            }
+        });
+
+        return mapped;
+    };
+
+    const getCsrfToken = () => {
+        if (typeof document === "undefined") {
+            return "";
+        }
+
+        return (
+            document
+                .querySelector('meta[name="csrf-token"]')
+                ?.getAttribute("content") ?? ""
+        );
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        post(route("journal.store"));
+
+        if (!isGuest) {
+            post(route("journal.store"));
+            return;
+        }
+
+        setGuestProcessing(true);
+        clearErrors();
+
+        const payload = {
+            date: data.date,
+            template_slug: data.template_slug,
+            sections_json: data.sections.map((section) => ({
+                key: section.key,
+                title_en: section.title_en,
+                title_ja: section.title_ja,
+                order: section.order,
+                input_type: section.input_type,
+                value: section.value,
+            })),
+        };
+
+        try {
+            const response = await fetch(route("api.guest.feedback"), {
+                method: "POST",
+                credentials: "same-origin",
+                headers: {
+                    Accept: "application/json",
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": getCsrfToken(),
+                },
+                body: JSON.stringify(payload),
+            });
+
+            let body: any = null;
+            try {
+                body = await response.json();
+            } catch (error) {
+                body = null;
+            }
+
+            if (!response.ok) {
+                if (response.status === 422 && body?.errors) {
+                    const mapped = mapGuestErrors(body.errors);
+                    if (Object.keys(mapped).length > 0) {
+                        setError(mapped);
+                        return;
+                    }
+                }
+
+                setError(
+                    "sections",
+                    body?.message ?? "フィードバックの生成に失敗しました。"
+                );
+                return;
+            }
+
+            if (body?.entry) {
+                saveGuestFeedbackEntry(body.entry);
+                router.visit(route("guest.feedback", { guest: 1 }));
+                return;
+            }
+
+            setError("sections", "フィードバックの生成に失敗しました。");
+        } catch (error) {
+            setError("sections", "通信に失敗しました。");
+        } finally {
+            setGuestProcessing(false);
+        }
     };
 
     return (
@@ -171,7 +331,7 @@ export default function Journal({
                                             ""
                                         }
                                         error={errorMessage}
-                                        disabled={processing}
+                                        disabled={isProcessing}
                                     />
                                 );
                             })}
@@ -185,14 +345,14 @@ export default function Journal({
                             <div className="flex flex-wrap items-center justify-end gap-3">
                                 <GlassButton
                                     type="submit"
-                                    disabled={processing}
+                                    disabled={isProcessing}
                                     className="px-4 py-2.5"
                                 >
-                                    {processing
+                                    {isProcessing
                                         ? "Saving & generating feedback..."
                                         : "Get feedback"}
                                 </GlassButton>
-                                {processing && (
+                                {isProcessing && (
                                     <p className="text-xs text-slate-500">
                                         英語フィードバックを生成しています。少しお待ちください。
                                     </p>

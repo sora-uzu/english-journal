@@ -51,53 +51,62 @@ export default function AppLayout({
                         </div>
 
                         <div className="hidden sm:ms-6 sm:flex sm:items-center">
-                            <div className="relative ms-3">
-                                <Dropdown>
-                                    <Dropdown.Trigger>
-                                        <span className="inline-flex rounded-full bg-white/30 px-2 py-1.5 backdrop-blur">
-                                            <button
-                                                type="button"
-                                                className="inline-flex items-center text-sm font-medium leading-4 text-slate-600 transition duration-150 ease-in-out hover:text-slate-800 focus:outline-none"
-                                            >
-                                                {user.name}
-
-                                                <svg
-                                                    className="-me-0.5 ms-2 h-4 w-4"
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    viewBox="0 0 20 20"
-                                                    fill="currentColor"
+                            {user ? (
+                                <div className="relative ms-3">
+                                    <Dropdown>
+                                        <Dropdown.Trigger>
+                                            <span className="inline-flex rounded-full bg-white/30 px-2 py-1.5 backdrop-blur">
+                                                <button
+                                                    type="button"
+                                                    className="inline-flex items-center text-sm font-medium leading-4 text-slate-600 transition duration-150 ease-in-out hover:text-slate-800 focus:outline-none"
                                                 >
-                                                    <path
-                                                        fillRule="evenodd"
-                                                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                                                        clipRule="evenodd"
-                                                    />
-                                                </svg>
-                                            </button>
-                                        </span>
-                                    </Dropdown.Trigger>
+                                                    {user.name}
 
-                                    <Dropdown.Content contentClasses="py-1 bg-white/80 backdrop-blur">
-                                        <Dropdown.Link
-                                            href={route('settings.sections.edit')}
-                                        >
-                                            Sections
-                                        </Dropdown.Link>
-                                        <Dropdown.Link
-                                            href={route('profile.edit')}
-                                        >
-                                            Profile
-                                        </Dropdown.Link>
-                                        <Dropdown.Link
-                                            href={route('logout')}
-                                            method="post"
-                                            as="button"
-                                        >
-                                            Log Out
-                                        </Dropdown.Link>
-                                    </Dropdown.Content>
-                                </Dropdown>
-                            </div>
+                                                    <svg
+                                                        className="-me-0.5 ms-2 h-4 w-4"
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                        viewBox="0 0 20 20"
+                                                        fill="currentColor"
+                                                    >
+                                                        <path
+                                                            fillRule="evenodd"
+                                                            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                                            clipRule="evenodd"
+                                                        />
+                                                    </svg>
+                                                </button>
+                                            </span>
+                                        </Dropdown.Trigger>
+
+                                        <Dropdown.Content contentClasses="py-1 bg-white/80 backdrop-blur">
+                                            <Dropdown.Link
+                                                href={route('settings.sections.edit')}
+                                            >
+                                                Sections
+                                            </Dropdown.Link>
+                                            <Dropdown.Link
+                                                href={route('profile.edit')}
+                                            >
+                                                Profile
+                                            </Dropdown.Link>
+                                            <Dropdown.Link
+                                                href={route('logout')}
+                                                method="post"
+                                                as="button"
+                                            >
+                                                Log Out
+                                            </Dropdown.Link>
+                                        </Dropdown.Content>
+                                    </Dropdown>
+                                </div>
+                            ) : (
+                                <Link
+                                    href={route('login')}
+                                    className="rounded-full border border-white/60 bg-white/40 px-4 py-2 text-sm font-semibold text-slate-700 shadow-[0_10px_28px_rgba(15,23,42,0.12)] hover:bg-white/60"
+                                >
+                                    Log in
+                                </Link>
+                            )}
                         </div>
 
                         <div className="-me-2 flex items-center sm:hidden">
@@ -208,23 +217,34 @@ export default function AppLayout({
                         </ResponsiveNavLink>
                     </div>
                     <div className="space-y-2 border-t border-white/40 px-4 py-4">
-                        <div>
-                            <div className="text-base font-medium text-slate-800">
-                                {user.name}
-                            </div>
-                            <div className="text-sm font-medium text-slate-500">
-                                {user.email}
-                            </div>
-                        </div>
-                        <ResponsiveNavLink
-                            method="post"
-                            href={route('logout')}
-                            as="button"
-                            onClick={closeMobileMenu}
-                            className="mt-2"
-                        >
-                            Log Out
-                        </ResponsiveNavLink>
+                        {user ? (
+                            <>
+                                <div>
+                                    <div className="text-base font-medium text-slate-800">
+                                        {user.name}
+                                    </div>
+                                    <div className="text-sm font-medium text-slate-500">
+                                        {user.email}
+                                    </div>
+                                </div>
+                                <ResponsiveNavLink
+                                    method="post"
+                                    href={route('logout')}
+                                    as="button"
+                                    onClick={closeMobileMenu}
+                                    className="mt-2"
+                                >
+                                    Log Out
+                                </ResponsiveNavLink>
+                            </>
+                        ) : (
+                            <ResponsiveNavLink
+                                href={route('login')}
+                                onClick={closeMobileMenu}
+                            >
+                                Log in
+                            </ResponsiveNavLink>
+                        )}
                     </div>
                 </div>
             </div>
