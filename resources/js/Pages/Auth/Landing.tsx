@@ -38,6 +38,14 @@ export default function Landing() {
                 >
                     新規登録
                 </GlassButton>
+                <GlassButton
+                    type="button"
+                    variant="ghost"
+                    onClick={() => router.get(route('journal.create'))}
+                    className="w-full border border-slate-200/80 bg-white/90 py-3 text-slate-800 shadow-[0_10px_26px_rgba(15,23,42,0.08)] transition-all hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_14px_30px_rgba(15,23,42,0.12)]"
+                >
+                    ゲストで試す
+                </GlassButton>
             </div>
         </AuthLayout>
     );

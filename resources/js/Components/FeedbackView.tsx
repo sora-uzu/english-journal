@@ -413,7 +413,7 @@ export default function FeedbackView({
                                     ログインして保存する
                                 </GlassButton>
                                 <p className="text-xs text-slate-500">
-                                    Notionへのコピーはログイン不要でご利用いただけます。
+                                    Export機能はログイン不要でご利用いただけます。
                                 </p>
                             </div>
                         </GlassCard>

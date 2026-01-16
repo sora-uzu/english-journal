@@ -2,7 +2,7 @@ import GlassButton from '@/Components/ui/GlassButton';
 import GlassInput from '@/Components/ui/GlassInput';
 import AuthLayout from '@/Layouts/AuthLayout';
 import Checkbox from '@/Components/Checkbox';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { FormEventHandler, useState } from 'react';
 
 export default function Login({
@@ -119,6 +119,18 @@ export default function Login({
                     {processing ? 'ログイン中…' : 'ログイン'}
                 </GlassButton>
             </form>
+
+            <div className="mt-4 rounded-2xl border border-white/70 bg-white/60 px-4 py-3 text-center text-xs text-slate-600">
+                <p>アカウントなしで試せます。</p>
+                <GlassButton
+                    type="button"
+                    variant="ghost"
+                    className="mt-2 w-full border border-slate-200/80 bg-white/90 py-2 text-slate-800 shadow-[0_10px_26px_rgba(15,23,42,0.08)] transition-all hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_14px_30px_rgba(15,23,42,0.12)]"
+                    onClick={() => router.get(route('journal.create'))}
+                >
+                    ゲストで試す
+                </GlassButton>
+            </div>
 
             <div className="mt-5 text-center text-xs text-slate-500">
                 <span>アカウントをお持ちでない方は </span>
