@@ -13,7 +13,13 @@ import {
     loadGuestActiveTemplateSlug,
     loadGuestCustomTemplate,
 } from "@/lib/journalTemplates";
-import { saveGuestFeedbackEntry } from "@/lib/guestFeedbackStorage";
+import {
+    GuestFeedbackDraft,
+    clearGuestFeedbackDraft,
+    loadGuestFeedbackDraft,
+    saveGuestFeedbackDraft,
+    saveGuestFeedbackEntry,
+} from "@/lib/guestFeedbackStorage";
 
 type Section = JournalTemplateSection & {
     value: string;
@@ -100,6 +106,12 @@ export default function Journal({
         presetSavedMessage ?? null
     );
     const [guestProcessing, setGuestProcessing] = React.useState(false);
+    const [guestDraft, setGuestDraft] =
+        React.useState<GuestFeedbackDraft | null>(null);
+    const [guestDraftSaving, setGuestDraftSaving] = React.useState(false);
+    const [guestDraftError, setGuestDraftError] = React.useState<string | null>(
+        null
+    );
     const isProcessing = processing || guestProcessing;
 
     React.useEffect(() => {
@@ -126,6 +138,17 @@ export default function Journal({
     }, [isGuest]);
 
     React.useEffect(() => {
+        if (isGuest) {
+            return;
+        }
+
+        const storedDraft = loadGuestFeedbackDraft();
+        if (storedDraft) {
+            setGuestDraft(storedDraft);
+        }
+    }, [isGuest]);
+
+    React.useEffect(() => {
         if (typeof window === "undefined") {
             return;
         }
@@ -147,6 +170,97 @@ export default function Journal({
             window.localStorage.setItem("english-journal:hasSeenGuide", "true");
         }
         setShowGuide(false);
+    };
+
+    const handleDiscardGuestDraft = () => {
+        clearGuestFeedbackDraft();
+        setGuestDraft(null);
+        setGuestDraftError(null);
+    };
+
+    const buildGuestDraftPayload = (draft: GuestFeedbackDraft) => ({
+        date: draft.entry.date,
+        template_slug: draft.template_slug,
+        sections: draft.entry.sections.map((section) => ({
+            key: section.key,
+            value: section.value ?? "",
+            title_en: section.title_en ?? null,
+            title_ja: section.title_ja ?? null,
+            order: section.order ?? null,
+            input_type: section.input_type ?? "textarea",
+        })),
+        feedback: draft.entry.feedback
+            ? {
+                  english_text: draft.entry.feedback.english_text ?? null,
+                  feedback_overall:
+                      draft.entry.feedback.feedback_overall ?? null,
+                  feedback_corrections:
+                      draft.entry.feedback.feedback_corrections ?? [],
+                  key_phrase_en: draft.entry.feedback.key_phrase_en ?? null,
+                  key_phrase_ja: draft.entry.feedback.key_phrase_ja ?? null,
+                  key_phrase_reason_ja:
+                      draft.entry.feedback.key_phrase_reason_ja ?? null,
+              }
+            : null,
+    });
+
+    const handleSaveGuestDraft = async () => {
+        if (!guestDraft || guestDraftSaving) {
+            return;
+        }
+
+        setGuestDraftSaving(true);
+        setGuestDraftError(null);
+
+        try {
+            const response = await fetch(route("journal.guest.store"), {
+                method: "POST",
+                credentials: "same-origin",
+                headers: {
+                    Accept: "application/json",
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": getCsrfToken(),
+                },
+                body: JSON.stringify(buildGuestDraftPayload(guestDraft)),
+            });
+
+            let body: any = null;
+            try {
+                body = await response.json();
+            } catch (error) {
+                body = null;
+            }
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    setGuestDraftError("ログインしてください。");
+                    return;
+                }
+
+                if (body?.errors && typeof body.errors === "object") {
+                    const firstError = Object.values(body.errors)
+                        .flat()
+                        .find(Boolean);
+                    if (typeof firstError === "string") {
+                        setGuestDraftError(firstError);
+                        return;
+                    }
+                }
+
+                setGuestDraftError(
+                    body?.message ?? "保存に失敗しました。"
+                );
+                return;
+            }
+
+            clearGuestFeedbackDraft();
+            setGuestDraft(null);
+            setToastMessage("履歴に保存しました。");
+        } catch (error) {
+            setGuestDraftError("通信に失敗しました。");
+        } finally {
+            setGuestDraftSaving(false);
+        }
     };
 
     const handleChangeSection = (index: number, value: string) => {
@@ -261,6 +375,10 @@ export default function Journal({
 
             if (body?.entry) {
                 saveGuestFeedbackEntry(body.entry);
+                saveGuestFeedbackDraft({
+                    entry: body.entry,
+                    template_slug: data.template_slug,
+                });
                 router.visit(route("guest.feedback", { guest: 1 }));
                 return;
             }
@@ -287,6 +405,44 @@ export default function Journal({
 
             <div className="pt-2 pb-4 sm:py-5 md:py-6">
                 <div className="mx-auto max-w-xl sm:px-6 lg:px-8">
+                    {!isGuest && guestDraft && (
+                        <div className="mb-4">
+                            <GlassCard className="border-amber-200/70 bg-amber-50/70 p-4 sm:p-5">
+                                <div className="space-y-2">
+                                    <p className="text-sm font-semibold text-slate-800">
+                                        直前のフィードバックを履歴に保存しますか？
+                                    </p>
+                                    <p className="text-xs text-slate-600">
+                                        登録前に作成した日記とフィードバックを、そのまま保存できます。
+                                    </p>
+                                    {guestDraftError && (
+                                        <p className="text-xs font-semibold text-rose-600">
+                                            {guestDraftError}
+                                        </p>
+                                    )}
+                                </div>
+                                <div className="mt-3 flex flex-wrap items-center gap-3">
+                                    <GlassButton
+                                        type="button"
+                                        className="px-4 py-2.5"
+                                        onClick={handleSaveGuestDraft}
+                                        disabled={guestDraftSaving}
+                                    >
+                                        保存する
+                                    </GlassButton>
+                                    <GlassButton
+                                        type="button"
+                                        variant="ghost"
+                                        className="px-3 py-2 text-xs"
+                                        onClick={handleDiscardGuestDraft}
+                                        disabled={guestDraftSaving}
+                                    >
+                                        破棄
+                                    </GlassButton>
+                                </div>
+                            </GlassCard>
+                        </div>
+                    )}
                     <GlassCard className="p-5 sm:p-6">
                         <form
                             onSubmit={handleSubmit}

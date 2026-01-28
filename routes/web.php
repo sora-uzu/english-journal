@@ -44,6 +44,7 @@ Route::get('/journal', [JournalController::class, 'create'])->name('journal.crea
 
 Route::middleware(['auth'])->group(function () {
     Route::post('/journal', [JournalController::class, 'store'])->name('journal.store');
+    Route::post('/journal/guest', [JournalController::class, 'storeGuest'])->name('journal.guest.store');
     Route::get('/journal/history', [JournalController::class, 'history'])->name('journal.history');
     Route::get('/journal/{journal}', [JournalController::class, 'show'])->name('journal.show');
 });

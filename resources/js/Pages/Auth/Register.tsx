@@ -5,6 +5,9 @@ import { Head, Link, router, useForm } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
 
 export default function Register() {
+    const fromGuest =
+        typeof window !== 'undefined' &&
+        new URLSearchParams(window.location.search).get('from') === 'guest';
     const { data, setData, post, processing, errors, reset } = useForm<{
         name: string;
         email: string;
@@ -20,9 +23,14 @@ export default function Register() {
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
 
-        post(route('register'), {
-            onFinish: () => reset('password', 'password_confirmation'),
-        });
+        post(
+            fromGuest
+                ? route('register', { from: 'guest' })
+                : route('register'),
+            {
+                onFinish: () => reset('password', 'password_confirmation'),
+            }
+        );
     };
 
     return (

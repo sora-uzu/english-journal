@@ -148,6 +148,142 @@ class JournalController extends Controller
     }
 
     /**
+     * ゲストのフィードバック下書きを保存
+     */
+    public function storeGuest(Request $request)
+    {
+        $user = Auth::user();
+        $templates = JournalTemplateCatalog::templatesForUser($user);
+        $allowedSlugs = array_merge(array_keys($templates), [JournalTemplateCatalog::CUSTOM_SLUG]);
+
+        $validator = Validator::make($request->all(), [
+            'date' => ['required', 'date'],
+            'template_slug' => ['required', 'string', Rule::in($allowedSlugs)],
+            'sections' => ['required', 'array', 'min:1'],
+            'sections.*.key' => ['required', 'string'],
+            'sections.*.value' => ['nullable', 'string', 'max:'.self::SECTION_TEXT_MAX],
+            'sections.*.title_en' => ['nullable', 'string'],
+            'sections.*.title_ja' => ['nullable', 'string'],
+            'sections.*.order' => ['nullable', 'integer'],
+            'sections.*.input_type' => ['nullable', 'string'],
+            'feedback' => ['nullable', 'array'],
+            'feedback.english_text' => ['nullable', 'string'],
+            'feedback.feedback_overall' => ['nullable', 'string'],
+            'feedback.feedback_corrections' => ['nullable', 'array'],
+            'feedback.key_phrase_en' => ['nullable', 'string'],
+            'feedback.key_phrase_ja' => ['nullable', 'string'],
+            'feedback.key_phrase_reason_ja' => ['nullable', 'string'],
+        ], [
+            'sections.*.value.max' => '各セクションは'.self::SECTION_TEXT_MAX.'文字以内で入力してください。',
+        ]);
+
+        $validator->after(function ($validator) use ($templates) {
+            $data = $validator->getData();
+            $templateSlug = (string) ($data['template_slug'] ?? '');
+            $template = $templates[$templateSlug] ?? null;
+            $sections = $data['sections'] ?? [];
+
+            if ($template) {
+                $expectedKeys = collect($template['sections'] ?? [])
+                    ->pluck('key')
+                    ->values()
+                    ->all();
+                $submittedKeys = collect($sections)
+                    ->pluck('key')
+                    ->values()
+                    ->all();
+
+                if (count($expectedKeys) !== count($submittedKeys)
+                    || array_diff($expectedKeys, $submittedKeys)
+                    || array_diff($submittedKeys, $expectedKeys)
+                ) {
+                    $validator->errors()->add('sections', 'セクション構成がテンプレートと一致しません。');
+                }
+            } else {
+                $submittedKeys = collect($sections)
+                    ->pluck('key')
+                    ->filter()
+                    ->values()
+                    ->all();
+
+                if (count($submittedKeys) !== count(array_unique($submittedKeys))) {
+                    $validator->errors()->add('sections', 'セクションキーが重複しています。');
+                }
+            }
+
+            $hasContent = collect($sections)->contains(function ($section) {
+                return trim((string) ($section['value'] ?? $section['text'] ?? '')) !== '';
+            });
+
+            if (! $hasContent) {
+                $validator->errors()->add('sections', '少なくとも1つのセクションに入力してください。');
+            }
+        });
+
+        $validated = $validator->validate();
+        $templateSlug = (string) $validated['template_slug'];
+        $template = $templates[$templateSlug] ?? null;
+        $sectionsInput = $validated['sections'] ?? [];
+
+        if ($template) {
+            $valuesByKey = collect($sectionsInput)
+                ->mapWithKeys(fn ($section) => [
+                    $section['key'] ?? '' => $section['value'] ?? $section['text'] ?? '',
+                ]);
+
+            $sectionsToStore = collect($template['sections'] ?? [])
+                ->map(function (array $section) use ($valuesByKey) {
+                    return [
+                        'key' => $section['key'] ?? '',
+                        'title_en' => $section['title_en'] ?? null,
+                        'title_ja' => $section['title_ja'] ?? null,
+                        'placeholder_en' => $section['placeholder_en'] ?? null,
+                        'placeholder_ja' => $section['placeholder_ja'] ?? null,
+                        'order' => $section['order'] ?? 0,
+                        'input_type' => $section['input_type'] ?? 'textarea',
+                        'value' => (string) $valuesByKey->get($section['key'] ?? '', ''),
+                    ];
+                })
+                ->values()
+                ->all();
+        } else {
+            $sectionsToStore = $this->normalizeGuestSections($sectionsInput);
+        }
+
+        if ($request->exists('feedback')) {
+            $feedbackInput = $validated['feedback'] ?? [];
+            $feedback = [
+                'english_text' => $feedbackInput['english_text'] ?? null,
+                'feedback_overall' => $feedbackInput['feedback_overall'] ?? null,
+                'feedback_corrections_json' => $feedbackInput['feedback_corrections'] ?? [],
+                'key_phrase_en' => $feedbackInput['key_phrase_en'] ?? null,
+                'key_phrase_ja' => $feedbackInput['key_phrase_ja'] ?? null,
+                'key_phrase_reason_ja' => $feedbackInput['key_phrase_reason_ja'] ?? null,
+            ];
+        } else {
+            $feedback = $this->feedbackComposer->build($sectionsToStore)['feedback'];
+        }
+
+        $journal = Journal::updateOrCreate(
+            [
+                'user_id' => Auth::id(),
+                'date'    => $validated['date'],
+            ],
+            array_merge(
+                [
+                    'sections' => $sectionsToStore,
+                    'sections_json' => $sectionsToStore,
+                ],
+                $feedback
+            )
+        );
+
+        return response()->json([
+            'journal_id' => $journal->id,
+        ]);
+    }
+
+    /**
      * 保存済み日記のフィードバック表示
      */
     public function show(Journal $journal)
@@ -256,6 +392,38 @@ class JournalController extends Controller
         }
 
         return false;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $sections
+     * @return array<int, array<string, mixed>>
+     */
+    private function normalizeGuestSections(array $sections): array
+    {
+        if ($sections === []) {
+            return [];
+        }
+
+        return collect($sections)
+            ->map(function (array $section, int $index) {
+                $name = (string) ($section['name'] ?? 'section');
+                $key = (string) ($section['key'] ?? Str::snake($name));
+                $labelEn = $section['title_en'] ?? $section['labelEn'] ?? $name;
+                $labelJa = $section['title_ja'] ?? $section['labelJa'] ?? null;
+
+                return [
+                    'key' => $key,
+                    'title_en' => $labelEn,
+                    'title_ja' => $labelJa,
+                    'placeholder_en' => null,
+                    'placeholder_ja' => null,
+                    'order' => $section['order'] ?? ($index + 1),
+                    'input_type' => $section['input_type'] ?? 'textarea',
+                    'value' => (string) ($section['value'] ?? $section['text'] ?? ''),
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     private function normalizeSections(array $sections): array

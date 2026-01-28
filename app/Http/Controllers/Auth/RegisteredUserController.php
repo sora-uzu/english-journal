@@ -46,6 +46,14 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        return redirect(route('journal.create', absolute: false));
+        $redirect = route('journal.create', absolute: false);
+        $fromGuest = $request->query('from') === 'guest'
+            || $request->boolean('from_guest');
+
+        if ($fromGuest) {
+            $redirect .= '?from=guest';
+        }
+
+        return redirect($redirect);
     }
 }
