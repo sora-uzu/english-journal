@@ -2,6 +2,7 @@ import GlassButton from "@/Components/ui/GlassButton";
 import GlassCard from "@/Components/ui/GlassCard";
 import GlassModal from "@/Components/ui/GlassModal";
 import { downloadText, journalToMarkdown } from "@/lib/journalExport";
+import type { JournalSectionInputType } from "@/lib/journalTemplates";
 import { Link, router } from "@inertiajs/react";
 import { useEffect, useState } from "react";
 
@@ -13,6 +14,8 @@ interface Section {
     title_ja?: string;
     value: string;
     order?: number;
+    input_type?: JournalSectionInputType;
+    inputType?: JournalSectionInputType;
 }
 
 interface Correction {

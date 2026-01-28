@@ -1,3 +1,5 @@
+export type JournalSectionInputType = "text" | "textarea";
+
 export type JournalTemplateSection = {
     key: string;
     title_en: string;
@@ -5,7 +7,8 @@ export type JournalTemplateSection = {
     placeholder_en?: string;
     placeholder_ja?: string;
     order: number;
-    input_type: "textarea";
+    input_type?: JournalSectionInputType;
+    inputType?: JournalSectionInputType;
 };
 
 export type JournalTemplate = {

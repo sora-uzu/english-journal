@@ -8,6 +8,7 @@ import GlassCard from "@/Components/ui/GlassCard";
 import HowToGuideModal from "@/Components/HowToGuideModal";
 import {
     JournalTemplate,
+    JournalSectionInputType,
     JournalTemplateSection,
     consumeGuestPresetMessage,
     loadGuestActiveTemplateSlug,
@@ -24,6 +25,11 @@ import {
 type Section = JournalTemplateSection & {
     value: string;
 };
+
+const resolveInputType = (section: {
+    input_type?: JournalSectionInputType;
+    inputType?: JournalSectionInputType;
+}) => section.input_type ?? section.inputType ?? "textarea";
 
 export default function Journal({
     today,
@@ -79,6 +85,7 @@ export default function Journal({
                 .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
                 .map((section) => ({
                     ...section,
+                    input_type: resolveInputType(section),
                     value: "",
                 })),
         [resolvedTemplate]
@@ -187,7 +194,7 @@ export default function Journal({
             title_en: section.title_en ?? null,
             title_ja: section.title_ja ?? null,
             order: section.order ?? null,
-            input_type: section.input_type ?? "textarea",
+            input_type: resolveInputType(section),
         })),
         feedback: draft.entry.feedback
             ? {
@@ -333,7 +340,7 @@ export default function Journal({
                 title_en: section.title_en,
                 title_ja: section.title_ja,
                 order: section.order,
-                input_type: section.input_type,
+                input_type: resolveInputType(section),
                 value: section.value,
             })),
         };
