@@ -15,6 +15,11 @@ import {
     loadGuestCustomTemplate,
 } from "@/lib/journalTemplates";
 import {
+    clearJournalDraft,
+    loadJournalDraft,
+    saveJournalDraft,
+} from "@/lib/journalDraftStorage";
+import {
     GuestFeedbackDraft,
     clearGuestFeedbackDraft,
     loadGuestFeedbackDraft,
@@ -24,6 +29,13 @@ import {
 
 type Section = JournalTemplateSection & {
     value: string;
+};
+
+type TodayJournal = {
+    id: number;
+    date: string;
+    template_slug: string | null;
+    sections: Section[];
 };
 
 const resolveInputType = (section: {
@@ -37,8 +49,10 @@ export default function Journal({
     templates,
     currentTemplateSlug,
     presetSavedMessage,
+    todayJournal,
 }: PageProps<{
     today: string;
+    todayJournal?: TodayJournal | null;
     template?: JournalTemplate;
     templates?: JournalTemplate[];
     currentTemplateSlug?: string;
@@ -79,17 +93,42 @@ export default function Journal({
         );
     }, [activeSlug, availableTemplates, template]);
 
-    const initialSections: Section[] = React.useMemo(
-        () =>
-            [...resolvedTemplate.sections]
+    const hasTodayJournal = Boolean(todayJournal);
+
+    const normalizeSections = React.useCallback(
+        (sections: Section[]) =>
+            [...sections]
                 .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
                 .map((section) => ({
                     ...section,
                     input_type: resolveInputType(section),
-                    value: "",
+                    value: section.value ?? "",
                 })),
-        [resolvedTemplate]
+        []
     );
+
+    const buildSectionsFromTemplate = React.useCallback(
+        (sourceTemplate: JournalTemplate, valuesByKey: Record<string, string>) =>
+            [...sourceTemplate.sections]
+                .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+                .map((section) => ({
+                    ...section,
+                    input_type: resolveInputType(section),
+                    value: valuesByKey[section.key] ?? "",
+                })),
+        []
+    );
+
+    const initialSections: Section[] = React.useMemo(() => {
+        if (todayJournal?.sections?.length) {
+            return normalizeSections(todayJournal.sections);
+        }
+
+        return buildSectionsFromTemplate(resolvedTemplate, {});
+    }, [buildSectionsFromTemplate, normalizeSections, resolvedTemplate, todayJournal]);
+
+    const initialTemplateSlug =
+        todayJournal?.template_slug ?? resolvedTemplate.slug;
 
     const {
         data,
@@ -104,8 +143,8 @@ export default function Journal({
         template_slug: string;
         sections: Section[];
     }>({
-        date: today,
-        template_slug: resolvedTemplate.slug,
+        date: todayJournal?.date ?? today,
+        template_slug: initialTemplateSlug,
         sections: initialSections,
     });
     const [showGuide, setShowGuide] = React.useState(false);
@@ -120,6 +159,30 @@ export default function Journal({
         null
     );
     const isProcessing = processing || guestProcessing;
+    const draftSaveTimerRef = React.useRef<number | null>(null);
+    const initialLoadRef = React.useRef(false);
+    const submitLabel = isGuest
+        ? "Get feedback"
+        : hasTodayJournal
+          ? "保存（更新）"
+          : "保存（新規）";
+    const processingLabel = isGuest
+        ? "Saving & generating feedback..."
+        : hasTodayJournal
+          ? "更新中..."
+          : "保存中...";
+
+    const clearTodayDraft = React.useCallback(() => {
+        if (typeof window === "undefined") {
+            return;
+        }
+
+        clearJournalDraft(today);
+        if (draftSaveTimerRef.current !== null) {
+            window.clearTimeout(draftSaveTimerRef.current);
+            draftSaveTimerRef.current = null;
+        }
+    }, [today]);
 
     React.useEffect(() => {
         if (!toastMessage) {
@@ -156,6 +219,72 @@ export default function Journal({
     }, [isGuest]);
 
     React.useEffect(() => {
+        if (initialLoadRef.current) {
+            return;
+        }
+
+        if (isGuest) {
+            initialLoadRef.current = true;
+            return;
+        }
+
+        if (hasTodayJournal) {
+            clearTodayDraft();
+            initialLoadRef.current = true;
+            return;
+        }
+
+        const draft = loadJournalDraft(today);
+        if (!draft) {
+            initialLoadRef.current = true;
+            return;
+        }
+
+        const draftTemplate = availableTemplates.find(
+            (item) => item.slug === draft.template_slug
+        );
+
+        if (!draftTemplate) {
+            clearJournalDraft(today);
+            initialLoadRef.current = true;
+            return;
+        }
+
+        const templateKeys = draftTemplate.sections.map((section) => section.key);
+        const draftKeys = Object.keys(draft.sections ?? {});
+        const hasMatchingKeys =
+            templateKeys.length === draftKeys.length &&
+            templateKeys.every((key) => draftKeys.includes(key));
+
+        if (!hasMatchingKeys) {
+            clearJournalDraft(today);
+            initialLoadRef.current = true;
+            return;
+        }
+
+        const sanitizedValues: Record<string, string> = {};
+        templateKeys.forEach((key) => {
+            const value = draft.sections[key];
+            sanitizedValues[key] = typeof value === "string" ? value : "";
+        });
+
+        setData("template_slug", draft.template_slug);
+        setData(
+            "sections",
+            buildSectionsFromTemplate(draftTemplate, sanitizedValues)
+        );
+        initialLoadRef.current = true;
+    }, [
+        availableTemplates,
+        buildSectionsFromTemplate,
+        clearTodayDraft,
+        hasTodayJournal,
+        isGuest,
+        setData,
+        today,
+    ]);
+
+    React.useEffect(() => {
         if (typeof window === "undefined") {
             return;
         }
@@ -166,6 +295,18 @@ export default function Journal({
         if (!hasSeen) {
             setShowGuide(true);
         }
+    }, []);
+
+    React.useEffect(() => {
+        return () => {
+            if (typeof window === "undefined") {
+                return;
+            }
+
+            if (draftSaveTimerRef.current !== null) {
+                window.clearTimeout(draftSaveTimerRef.current);
+            }
+        };
     }, []);
 
     const openGuide = () => {
@@ -270,13 +411,40 @@ export default function Journal({
         }
     };
 
+    const scheduleDraftSave = (nextSections: Section[]) => {
+        if (isGuest || hasTodayJournal) {
+            return;
+        }
+
+        if (typeof window === "undefined") {
+            return;
+        }
+
+        if (draftSaveTimerRef.current !== null) {
+            window.clearTimeout(draftSaveTimerRef.current);
+        }
+
+        draftSaveTimerRef.current = window.setTimeout(() => {
+            const payload: Record<string, string> = {};
+            nextSections.forEach((section) => {
+                payload[section.key] = section.value ?? "";
+            });
+
+            saveJournalDraft(today, {
+                version: 1,
+                template_slug: data.template_slug,
+                sections: payload,
+                updated_at: Math.floor(Date.now() / 1000),
+            });
+        }, 400);
+    };
+
     const handleChangeSection = (index: number, value: string) => {
-        setData(
-            "sections",
-            data.sections.map((s, i) =>
-                i === index ? { ...s, value } : s
-            )
+        const nextSections = data.sections.map((s, i) =>
+            i === index ? { ...s, value } : s
         );
+        setData("sections", nextSections);
+        scheduleDraftSave(nextSections);
     };
 
     const mapGuestErrors = (payload: Record<string, string[]>) => {
@@ -325,7 +493,11 @@ export default function Journal({
         e.preventDefault();
 
         if (!isGuest) {
-            post(route("journal.store"));
+            post(route("journal.store"), {
+                onSuccess: () => {
+                    clearTodayDraft();
+                },
+            });
             return;
         }
 
@@ -512,8 +684,8 @@ export default function Journal({
                                     className="px-4 py-2.5"
                                 >
                                     {isProcessing
-                                        ? "Saving & generating feedback..."
-                                        : "Get feedback"}
+                                        ? processingLabel
+                                        : submitLabel}
                                 </GlassButton>
                                 {isProcessing && (
                                     <p className="text-xs text-slate-500">

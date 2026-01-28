@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Journal;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -249,5 +250,112 @@ class JournalControllerTest extends TestCase
         );
         $this->assertNull($journal->english_text);
         Http::assertNothingSent();
+    }
+
+    public function test_create_includes_today_journal_when_exists(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2025-01-10'));
+
+        $user = User::factory()->create();
+        $sections = [
+            [
+                'key' => 'free_writing',
+                'title_en' => 'Free writing',
+                'title_ja' => null,
+                'placeholder_en' => null,
+                'placeholder_ja' => null,
+                'order' => 1,
+                'input_type' => 'textarea',
+                'value' => 'Hello',
+            ],
+        ];
+
+        $journal = Journal::create([
+            'user_id' => $user->id,
+            'date' => '2025-01-10',
+            'sections' => $sections,
+            'sections_json' => $sections,
+            'english_text' => null,
+            'feedback_overall' => null,
+            'feedback_corrections_json' => [],
+            'key_phrase_en' => null,
+            'key_phrase_ja' => null,
+            'key_phrase_reason_ja' => null,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('journal.create'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Journal')
+                ->where('today', '2025-01-10')
+                ->where('todayJournal.id', $journal->id)
+                ->where('todayJournal.date', '2025-01-10')
+                ->where('todayJournal.template_slug', 'simple')
+                ->where('todayJournal.sections.0.key', 'free_writing')
+            );
+
+        Carbon::setTestNow();
+    }
+
+    public function test_create_returns_null_when_today_journal_missing(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2025-01-11'));
+
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get(route('journal.create'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Journal')
+                ->where('today', '2025-01-11')
+                ->where('todayJournal', null)
+            );
+
+        Carbon::setTestNow();
+    }
+
+    public function test_create_returns_null_when_template_slug_cannot_be_resolved(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2025-01-12'));
+
+        $user = User::factory()->create();
+        $sections = [
+            [
+                'key' => 'unknown_key',
+                'title_en' => 'Unknown',
+                'title_ja' => null,
+                'placeholder_en' => null,
+                'placeholder_ja' => null,
+                'order' => 1,
+                'input_type' => 'textarea',
+                'value' => 'Hello',
+            ],
+        ];
+
+        Journal::create([
+            'user_id' => $user->id,
+            'date' => '2025-01-12',
+            'sections' => $sections,
+            'sections_json' => $sections,
+            'english_text' => null,
+            'feedback_overall' => null,
+            'feedback_corrections_json' => [],
+            'key_phrase_en' => null,
+            'key_phrase_ja' => null,
+            'key_phrase_reason_ja' => null,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('journal.create'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Journal')
+                ->where('today', '2025-01-12')
+                ->where('todayJournal', null)
+            );
+
+        Carbon::setTestNow();
     }
 }

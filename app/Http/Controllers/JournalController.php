@@ -41,9 +41,31 @@ class JournalController extends Controller
             'sections' => [],
         ];
         $presetSavedMessage = session('preset_saved_message');
+        $todayJournal = null;
+
+        if ($user) {
+            $journal = Journal::where('user_id', $user->id)
+                ->where('date', $today)
+                ->first();
+
+            if ($journal) {
+                $sections = $this->normalizeSections($journal->sections ?? $journal->sections_json ?? []);
+                $matchedTemplateSlug = $this->resolveTemplateSlugForSections($templates, $sections);
+
+                if ($matchedTemplateSlug) {
+                    $todayJournal = [
+                        'id' => $journal->id,
+                        'date' => (string) $journal->date,
+                        'template_slug' => $matchedTemplateSlug,
+                        'sections' => $sections,
+                    ];
+                }
+            }
+        }
 
         return Inertia::render('Journal', [
             'today' => $today,
+            'todayJournal' => $todayJournal,
             'template' => $template,
             'templates' => array_values($templates),
             'currentTemplateSlug' => $currentTemplateSlug,
@@ -467,5 +489,42 @@ class JournalController extends Controller
         }
 
         return array_key_exists('key', $first) && array_key_exists('value', $first);
+    }
+
+    /**
+     * @param array<string, array<string, mixed>> $templates
+     * @param array<int, array<string, mixed>> $sections
+     */
+    private function resolveTemplateSlugForSections(array $templates, array $sections): ?string
+    {
+        if ($sections === []) {
+            return null;
+        }
+
+        $sectionKeys = collect($sections)
+            ->pluck('key')
+            ->filter()
+            ->values()
+            ->all();
+
+        foreach ($templates as $slug => $template) {
+            $templateKeys = collect($template['sections'] ?? [])
+                ->pluck('key')
+                ->filter()
+                ->values()
+                ->all();
+
+            if (count($sectionKeys) !== count($templateKeys)) {
+                continue;
+            }
+
+            if (array_diff($sectionKeys, $templateKeys) || array_diff($templateKeys, $sectionKeys)) {
+                continue;
+            }
+
+            return (string) $slug;
+        }
+
+        return null;
     }
 }
