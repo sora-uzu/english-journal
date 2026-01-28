@@ -483,20 +483,16 @@ export default function Sections({
                                     使い慣れた構成から始められます。プリセットは後からいつでも切り替えできます。
                                 </p>
                             </div>
-                            <GlassButton
-                                type="button"
-                                variant="secondary"
-                                onClick={() =>
-                                    openCustomEditor(
-                                        customTemplate ? "edit" : "create"
-                                    )
-                                }
-                                className="px-4 py-2.5"
-                            >
-                                {customTemplate
-                                    ? "Edit custom"
-                                    : "Create custom"}
-                            </GlassButton>
+                            {!customTemplate && (
+                                <GlassButton
+                                    type="button"
+                                    variant="secondary"
+                                    onClick={() => openCustomEditor("create")}
+                                    className="px-4 py-2.5"
+                                >
+                                    Create custom
+                                </GlassButton>
+                            )}
                         </div>
 
                         <form onSubmit={handleSubmit} className="mt-6">
@@ -561,16 +557,37 @@ export default function Sections({
                                                             </p>
                                                         )}
                                                     </div>
-                                                    {template.slug === CUSTOM_SLUG && (
-                                                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
-                                                            Custom
-                                                        </span>
-                                                    )}
-                                                    {isSelected && (
-                                                        <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-semibold text-violet-700">
-                                                            Selected
-                                                        </span>
-                                                    )}
+                                                    <div className="flex items-center gap-2">
+                                                        {template.slug === CUSTOM_SLUG && (
+                                                            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
+                                                                Custom
+                                                            </span>
+                                                        )}
+                                                        {template.slug === CUSTOM_SLUG && (
+                                                            <GlassButton
+                                                                type="button"
+                                                                variant="ghost"
+                                                                className="h-7 px-2 text-[11px]"
+                                                                aria-label="Edit custom preset"
+                                                                onClick={(event) => {
+                                                                    event.preventDefault();
+                                                                    event.stopPropagation();
+                                                                    openCustomEditor(
+                                                                        customTemplate
+                                                                            ? "edit"
+                                                                            : "create"
+                                                                    );
+                                                                }}
+                                                            >
+                                                                Edit
+                                                            </GlassButton>
+                                                        )}
+                                                        {isSelected && (
+                                                            <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-semibold text-violet-700">
+                                                                Selected
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                                 <div className="mt-4 space-y-2">
                                                     {sortedSections.map((section) => (
