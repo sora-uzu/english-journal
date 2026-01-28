@@ -2,184 +2,92 @@
 
 > 3分で続けられる、静かな英語日記アプリ。
 
-**English Journal** は、プレッシャーなく英語日記を続けるためのミニマルなWebアプリです。
-
-- 🇯🇵🇬🇧 日本語でも英語でもOK（混ざってもOK）
-- 🧩 セクション構成はプリセット or カスタムで切り替え
-- 🤖 書いた内容を「自然な英語ジャーナル」に整えて返す
-- 🧠 学習フィードバック（修正例 + キーフレーズ1つ）
-- 🔊 生成した英文は読み上げ（Listen）で確認できる
-- 📅 Historyはカレンダーで「書いた日」が一目でわかる
-- 📤 Notion向けMarkdownをコピー/ダウンロードできる
-- 🧘‍♂️ ゲーミフィケーション/コミュニティは入れない（静かに続ける）
+**English Journal** は、プレッシャーなく英語日記を続けるためのミニマルなWebアプリです。  
+日本語・英語どちらでも書けて、内容は自然な英語日記として整えられます。
 
 ---
 
-## コンセプト
+## こんな人に
 
-- **「1日3分で完結する英語日記」**
-- **「日本語でも書けるから、気持ちを優先できる」**
-- **「ごほうび通知や経験値ではなく、静かな自己対話の場」**
+- 英語日記を始めたいがハードルが高い
+- きれいな英文を作りたいが学習負荷は抑えたい
+- 静かな習慣化を重視したい
+
+---
+
+## できること（要約）
+
+- 🇯🇵🇬🇧 日本語/英語どちらでもOK（混在可）
+- 🧩 セクション構成はプリセット or カスタム
+- 🤖 自然な英語ジャーナルに整形 + 学習フィードバック
+- 🔊 読み上げ（TTS）
+- 📅 履歴はカレンダー表示（ログイン時）
+- 📤 Notion向けMarkdownコピー/ダウンロード
+- 👤 ゲスト利用OK
+- 📱 ホーム画面に追加して「アプリ化」できる（PWA）
 
 ---
 
-## 機能（現状）
+## 使い方（3ステップ）
 
-### ✏️ 日記入力
-
-- 1日1件（日付で上書き保存）
-- セクション構成はプリセットから選択
-  - Simple / Classic / Daily Log
-  - Custom（1〜5セクション、英語タイトル必須）
-- 入力は日本語・英語どちらでもOK（混在可）
-- 各セクションは最大500文字
-
-### 🧩 セクション設定
-
-- Settings → Sections からプリセットを切り替え
-- Custom preset は作成/編集可能
-- 1〜5セクションまで、順序も変更可能
-
-### 🤖 AIフィードバック（OpenAI）
-
-バックエンドで OpenAI Chat Completions を呼び出し、以下の形式で返します：
-
-- `english_text`：セクション付きの自然な英語日記
-- `feedback_overall`：英語学習に寄せた総評（日本語）
-- `feedback_corrections[]`：修正例（before / after / note_ja）
-- `key_phrase_en / key_phrase_ja / key_phrase_reason_ja`：今日のキーフレーズ1つ
-
-補足：
-
-- 0〜2文字の入力は「内容なし」とみなし、英文生成対象から除外
-- 全セクションが短すぎる場合はフィードバックをスキップ
-
-### 🔊 読み上げ（TTS）
-
-- `english_text` を SpeechSynthesis（en-US）で再生
-- セクション見出しは読まない
-
-### 📅 History（カレンダー）
-
-- 月カレンダーで「書いた日」を表示
-- その月のキーフレーズを最大3件ピックアップ
-
-### 📤 エクスポート
-
-- Notion向けMarkdownをコピー
-- `.md` ファイルをダウンロード
+1. **書く**：日本語でもOK
+2. **整える**：自然な英語に自動整形
+3. **学ぶ**：修正例・キーフレーズで軽く復習
 
 ---
+
+## スマホでアプリのように使える（PWA）
+
+インストール不要で、ブラウザから **ホーム画面に追加** すれば  \nアイコンをタップするだけでアプリのように起動できます。  
+
+---
+
+# For Developers
 
 ## 技術スタック
 
-### Backend
-
-- Laravel 11
-- Laravel Breeze（Inertia + 認証）
-- OpenAI API 連携
-
-### Frontend
-
-- Inertia.js
-- React 18
-- TypeScript
-- Tailwind CSS
-- Vite
-
-### DB
-
-- ローカル開発：SQLite
-- 本番（Render）：PostgreSQL
+- Backend: Laravel 11 / Breeze（Inertia + 認証）
+- Frontend: Inertia.js / React 18 / TypeScript / Tailwind CSS / Vite
+- DB: ローカルはSQLite、本番（Render）はPostgreSQL
 
 ---
 
 ## 開発（ローカル）
 
-### 1) 依存関係
-
 ```bash
 composer install
 npm install
-```
-
-### 2) .env
-
-```bash
 cp .env.example .env
 php artisan key:generate
 ```
 
-最低限設定：
-
-- `OPENAI_API_KEY`（AIフィードバック用）
-- `OPENAI_MODEL`（任意、デフォルト: `gpt-4o-mini`）
-- `OPENAI_BASE_URL`（任意、デフォルト: `https://api.openai.com/v1`）
-
-セッション（ローカル）：
-
-- `SESSION_DRIVER=file` のままでOK（`.env.example` もこの設定）
-- 本番(Render)は `SESSION_DRIVER=database` を推奨（後述）
-
-DB（SQLite例）：
-
 ```bash
 touch database/database.sqlite
-```
-
-```env
-DB_CONNECTION=sqlite
-DB_DATABASE=/absolute/path/to/database.sqlite
-```
-
-### 3) マイグレーション
-
-```bash
 php artisan migrate
-```
-
-### 4) 起動
-
-```bash
 php artisan serve
 npm run dev
 ```
 
----
+`.env` の最低限:
 
-## Git hooks（ローカル）
-
-コミット時は軽めのテスト、プッシュ時はフルテストを自動実行します。
-チーム共有のために `.git/hooks` は使わず、`core.hooksPath` で `.githooks` を参照します。
-
-### セットアップ
-
-```bash
-bash scripts/setup-hooks.sh
-```
-
-### 実行内容
-
-- pre-commit: `php artisan test --testsuite=Unit` + `npm run test:js:run`
-- pre-push: `php artisan test` + `npm run test:js:run`
+- `OPENAI_API_KEY`
+- `OPENAI_MODEL`（任意、デフォルト: `gpt-4o-mini`）
+- `OPENAI_BASE_URL`（任意、デフォルト: `https://api.openai.com/v1`）
 
 ---
 
 ## デプロイ（Render）メモ
 
-- Render の Environment に `.env` 相当を設定（リポジトリに `.env` は push しない）
-- `OPENAI_API_KEY` を設定し忘れると、英語フィードバック生成が失敗します
-- セッション永続化のため `SESSION_DRIVER=database` を設定し、デプロイ後に `php artisan migrate --force` を実行
+- Render の Environment に `.env` 相当を設定
+- `OPENAI_API_KEY` が未設定だとフィードバック生成が失敗
+- 本番は `SESSION_DRIVER=database` 推奨 → `php artisan migrate --force`
 
 ---
 
 ## Keepalive（Render スリープ回避）
 
-GitHub Actions から `/health` を定期的に叩きます。
-
-1. GitHub リポジトリ → Settings → Secrets and variables → Actions → Variables
-2. `HEALTH_URL` に `https://<your-app>.onrender.com/health` を設定
-3. Actions の `Keep Render Awake` が成功していることを確認
+現在は **UptimeRobot のみ** で `/health` を定期監視しています。  
+GitHub Actions の `Keep Render Awake` ワークフローは **無効化** しています。
 
 ---
 
