@@ -22,5 +22,5 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction --no-progre
   && php artisan view:clear
 ENV APP_ENV=production \
     APP_DEBUG=false
-EXPOSE 8000
-CMD sh -lc "php artisan optimize:clear && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8000}"
+# EXPOSE is optional on Render; the important part is binding to $PORT
+CMD sh -lc 'set -e; php artisan optimize:clear; php artisan serve --host=0.0.0.0 --port="$PORT" & PID=$!; i=0; until php artisan migrate --force; do i=$((i+1)); if [ $i -ge 30 ]; then echo "migrate failed after retries" >&2; kill $PID; exit 1; fi; echo "migrate failed, retrying... ($i/30)" >&2; sleep 2; done; wait $PID'
