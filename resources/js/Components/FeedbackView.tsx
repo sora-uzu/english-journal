@@ -3,7 +3,7 @@ import GlassCard from "@/Components/ui/GlassCard";
 import GlassModal from "@/Components/ui/GlassModal";
 import { downloadText, journalToMarkdown } from "@/lib/journalExport";
 import type { JournalSectionInputType } from "@/lib/journalTemplates";
-import { Link, router } from "@inertiajs/react";
+import { router } from "@inertiajs/react";
 import { useEffect, useState } from "react";
 
 export type FeedbackStatus = "ok" | "skipped_short" | "error";
@@ -312,7 +312,6 @@ export default function FeedbackView({
         resolveNamedRoute("register", "/register"),
         { from: "guest" }
     );
-    const loginUrl = resolveNamedRoute("login", "/login");
 
     useEffect(() => {
         if (!toastMessage) {
@@ -440,12 +439,6 @@ export default function FeedbackView({
                                 >
                                     無料で登録して保存する
                                 </GlassButton>
-                                <Link
-                                    href={loginUrl}
-                                    className="text-xs font-semibold text-slate-600 underline decoration-slate-300 underline-offset-4 transition hover:text-slate-800"
-                                >
-                                    ログインはこちら
-                                </Link>
                                 <p className="text-xs text-slate-500">
                                     Export機能はログイン不要でご利用いただけます。
                                 </p>

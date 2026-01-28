@@ -51,7 +51,7 @@ class RegisteredUserController extends Controller
             || $request->boolean('from_guest');
 
         if ($fromGuest) {
-            $redirect .= '?from=guest';
+            $redirect .= '?autosave=1';
         }
 
         return redirect($redirect);

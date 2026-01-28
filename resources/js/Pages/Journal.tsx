@@ -20,11 +20,11 @@ import {
     saveJournalDraft,
 } from "@/lib/journalDraftStorage";
 import {
-    GuestFeedbackDraft,
-    clearGuestFeedbackDraft,
-    loadGuestFeedbackDraft,
-    saveGuestFeedbackDraft,
+    GuestPendingSave,
+    clearGuestPendingSave,
+    loadGuestPendingSave,
     saveGuestFeedbackEntry,
+    saveGuestPendingSave,
 } from "@/lib/guestFeedbackStorage";
 
 type Section = JournalTemplateSection & {
@@ -152,20 +152,15 @@ export default function Journal({
         presetSavedMessage ?? null
     );
     const [guestProcessing, setGuestProcessing] = React.useState(false);
-    const [guestDraft, setGuestDraft] =
-        React.useState<GuestFeedbackDraft | null>(null);
-    const [guestDraftSaving, setGuestDraftSaving] = React.useState(false);
-    const [guestDraftError, setGuestDraftError] = React.useState<string | null>(
-        null
-    );
     const isProcessing = processing || guestProcessing;
     const draftSaveTimerRef = React.useRef<number | null>(null);
     const initialLoadRef = React.useRef(false);
+    const autosaveAttemptedRef = React.useRef(false);
     const submitLabel = isGuest
         ? "Get feedback"
         : hasTodayJournal
           ? "保存（更新）"
-          : "保存（新規）";
+          : "フィードバックを作成";
     const processingLabel = isGuest
         ? "Saving & generating feedback..."
         : hasTodayJournal
@@ -204,17 +199,6 @@ export default function Journal({
         const guestMessage = consumeGuestPresetMessage();
         if (guestMessage) {
             setToastMessage(guestMessage);
-        }
-    }, [isGuest]);
-
-    React.useEffect(() => {
-        if (isGuest) {
-            return;
-        }
-
-        const storedDraft = loadGuestFeedbackDraft();
-        if (storedDraft) {
-            setGuestDraft(storedDraft);
         }
     }, [isGuest]);
 
@@ -320,96 +304,37 @@ export default function Journal({
         setShowGuide(false);
     };
 
-    const handleDiscardGuestDraft = () => {
-        clearGuestFeedbackDraft();
-        setGuestDraft(null);
-        setGuestDraftError(null);
-    };
-
-    const buildGuestDraftPayload = (draft: GuestFeedbackDraft) => ({
-        date: draft.entry.date,
-        template_slug: draft.template_slug,
-        sections: draft.entry.sections.map((section) => ({
-            key: section.key,
-            value: section.value ?? "",
-            title_en: section.title_en ?? null,
-            title_ja: section.title_ja ?? null,
-            order: section.order ?? null,
-            input_type: resolveInputType(section),
-        })),
-        feedback: draft.entry.feedback
-            ? {
-                  english_text: draft.entry.feedback.english_text ?? null,
-                  feedback_overall:
-                      draft.entry.feedback.feedback_overall ?? null,
-                  feedback_corrections:
-                      draft.entry.feedback.feedback_corrections ?? [],
-                  key_phrase_en: draft.entry.feedback.key_phrase_en ?? null,
-                  key_phrase_ja: draft.entry.feedback.key_phrase_ja ?? null,
-                  key_phrase_reason_ja:
-                      draft.entry.feedback.key_phrase_reason_ja ?? null,
-              }
-            : null,
-    });
-
-    const handleSaveGuestDraft = async () => {
-        if (!guestDraft || guestDraftSaving) {
-            return;
-        }
-
-        setGuestDraftSaving(true);
-        setGuestDraftError(null);
-
-        try {
-            const response = await fetch(route("journal.guest.store"), {
-                method: "POST",
-                credentials: "same-origin",
-                headers: {
-                    Accept: "application/json",
-                    "Content-Type": "application/json",
-                    "X-CSRF-TOKEN": getCsrfToken(),
-                },
-                body: JSON.stringify(buildGuestDraftPayload(guestDraft)),
-            });
-
-            let body: any = null;
-            try {
-                body = await response.json();
-            } catch (error) {
-                body = null;
-            }
-
-            if (!response.ok) {
-                if (response.status === 401) {
-                    setGuestDraftError("ログインしてください。");
-                    return;
-                }
-
-                if (body?.errors && typeof body.errors === "object") {
-                    const firstError = Object.values(body.errors)
-                        .flat()
-                        .find(Boolean);
-                    if (typeof firstError === "string") {
-                        setGuestDraftError(firstError);
-                        return;
-                    }
-                }
-
-                setGuestDraftError(
-                    body?.message ?? "保存に失敗しました。"
-                );
-                return;
-            }
-
-            clearGuestFeedbackDraft();
-            setGuestDraft(null);
-            setToastMessage("履歴に保存しました。");
-        } catch (error) {
-            setGuestDraftError("通信に失敗しました。");
-        } finally {
-            setGuestDraftSaving(false);
-        }
-    };
+    const buildGuestPendingPayload = React.useCallback(
+        (pending: GuestPendingSave) => ({
+            date: pending.entry.date,
+            template_slug: pending.template_slug,
+            sections: pending.entry.sections.map((section) => ({
+                key: section.key,
+                value: section.value ?? "",
+                title_en: section.title_en ?? null,
+                title_ja: section.title_ja ?? null,
+                order: section.order ?? null,
+                input_type: resolveInputType(section),
+            })),
+            feedback: pending.entry.feedback
+                ? {
+                      english_text:
+                          pending.entry.feedback.english_text ?? null,
+                      feedback_overall:
+                          pending.entry.feedback.feedback_overall ?? null,
+                      feedback_corrections:
+                          pending.entry.feedback.feedback_corrections ?? [],
+                      key_phrase_en:
+                          pending.entry.feedback.key_phrase_en ?? null,
+                      key_phrase_ja:
+                          pending.entry.feedback.key_phrase_ja ?? null,
+                      key_phrase_reason_ja:
+                          pending.entry.feedback.key_phrase_reason_ja ?? null,
+                  }
+                : null,
+        }),
+        []
+    );
 
     const scheduleDraftSave = (nextSections: Section[]) => {
         if (isGuest || hasTodayJournal) {
@@ -477,7 +402,7 @@ export default function Journal({
         return mapped;
     };
 
-    const getCsrfToken = () => {
+    const getCsrfToken = React.useCallback(() => {
         if (typeof document === "undefined") {
             return "";
         }
@@ -487,7 +412,93 @@ export default function Journal({
                 .querySelector('meta[name="csrf-token"]')
                 ?.getAttribute("content") ?? ""
         );
-    };
+    }, []);
+
+    const clearAutosaveParam = React.useCallback(() => {
+        if (typeof window === "undefined") {
+            return;
+        }
+
+        const url = new URL(window.location.href);
+        url.searchParams.delete("autosave");
+        window.history.replaceState({}, "", url.toString());
+    }, []);
+
+    React.useEffect(() => {
+        if (isGuest) {
+            return;
+        }
+
+        if (typeof window === "undefined") {
+            return;
+        }
+
+        if (autosaveAttemptedRef.current) {
+            return;
+        }
+
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("autosave") !== "1") {
+            return;
+        }
+
+        autosaveAttemptedRef.current = true;
+
+        const pending = loadGuestPendingSave();
+        if (!pending) {
+            clearAutosaveParam();
+            return;
+        }
+
+        const hasTemplate = availableTemplates.some(
+            (candidate) => candidate.slug === pending.template_slug
+        );
+
+        if (hasTemplate) {
+            setData("template_slug", pending.template_slug);
+        }
+
+        setData("date", pending.entry.date);
+        setData(
+            "sections",
+            normalizeSections(pending.entry.sections as Section[])
+        );
+
+        const runAutosave = async () => {
+            try {
+                const response = await fetch(route("journal.guest.store"), {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        Accept: "application/json",
+                        "Content-Type": "application/json",
+                        "X-CSRF-TOKEN": getCsrfToken(),
+                    },
+                    body: JSON.stringify(buildGuestPendingPayload(pending)),
+                });
+
+                if (response.ok) {
+                    clearGuestPendingSave();
+                    setToastMessage("履歴に保存しました。");
+                    clearAutosaveParam();
+                }
+            } catch (error) {
+                // Keep pending data for retry.
+            }
+        };
+
+        void runAutosave();
+    }, [
+        availableTemplates,
+        buildGuestPendingPayload,
+        clearAutosaveParam,
+        clearGuestPendingSave,
+        getCsrfToken,
+        isGuest,
+        normalizeSections,
+        setData,
+        setToastMessage,
+    ]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -554,7 +565,7 @@ export default function Journal({
 
             if (body?.entry) {
                 saveGuestFeedbackEntry(body.entry);
-                saveGuestFeedbackDraft({
+                saveGuestPendingSave({
                     entry: body.entry,
                     template_slug: data.template_slug,
                 });
@@ -584,44 +595,6 @@ export default function Journal({
 
             <div className="pt-2 pb-4 sm:py-5 md:py-6">
                 <div className="mx-auto max-w-xl sm:px-6 lg:px-8">
-                    {!isGuest && guestDraft && (
-                        <div className="mb-4">
-                            <GlassCard className="border-amber-200/70 bg-amber-50/70 p-4 sm:p-5">
-                                <div className="space-y-2">
-                                    <p className="text-sm font-semibold text-slate-800">
-                                        直前のフィードバックを履歴に保存しますか？
-                                    </p>
-                                    <p className="text-xs text-slate-600">
-                                        登録前に作成した日記とフィードバックを、そのまま保存できます。
-                                    </p>
-                                    {guestDraftError && (
-                                        <p className="text-xs font-semibold text-rose-600">
-                                            {guestDraftError}
-                                        </p>
-                                    )}
-                                </div>
-                                <div className="mt-3 flex flex-wrap items-center gap-3">
-                                    <GlassButton
-                                        type="button"
-                                        className="px-4 py-2.5"
-                                        onClick={handleSaveGuestDraft}
-                                        disabled={guestDraftSaving}
-                                    >
-                                        保存する
-                                    </GlassButton>
-                                    <GlassButton
-                                        type="button"
-                                        variant="ghost"
-                                        className="px-3 py-2 text-xs"
-                                        onClick={handleDiscardGuestDraft}
-                                        disabled={guestDraftSaving}
-                                    >
-                                        破棄
-                                    </GlassButton>
-                                </div>
-                            </GlassCard>
-                        </div>
-                    )}
                     <GlassCard className="p-5 sm:p-6">
                         <form
                             onSubmit={handleSubmit}

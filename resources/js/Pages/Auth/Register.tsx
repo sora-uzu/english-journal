@@ -28,6 +28,13 @@ export default function Register() {
                 ? route('register', { from: 'guest' })
                 : route('register'),
             {
+                onSuccess: () => {
+                    if (fromGuest && typeof window !== 'undefined') {
+                        window.location.href = route('journal.create', {
+                            autosave: 1,
+                        });
+                    }
+                },
                 onFinish: () => reset('password', 'password_confirmation'),
             }
         );
