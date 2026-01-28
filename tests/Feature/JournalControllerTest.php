@@ -252,6 +252,60 @@ class JournalControllerTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_guest_store_is_idempotent(): void
+    {
+        $user = User::factory()->create();
+
+        $payload = [
+            'date' => '2025-01-09',
+            'template_slug' => 'simple',
+            'sections' => [
+                ['key' => 'free_writing', 'value' => 'First entry'],
+            ],
+            'feedback' => [
+                'english_text' => 'First English',
+                'feedback_overall' => 'First summary',
+                'feedback_corrections' => [],
+                'key_phrase_en' => 'first phrase',
+                'key_phrase_ja' => '初回',
+                'key_phrase_reason_ja' => '最初の表現',
+            ],
+        ];
+
+        $payloadUpdated = [
+            'date' => '2025-01-09',
+            'template_slug' => 'simple',
+            'sections' => [
+                ['key' => 'free_writing', 'value' => 'Second entry'],
+            ],
+            'feedback' => [
+                'english_text' => 'Second English',
+                'feedback_overall' => 'Second summary',
+                'feedback_corrections' => [],
+                'key_phrase_en' => 'second phrase',
+                'key_phrase_ja' => '二回目',
+                'key_phrase_reason_ja' => '更新された表現',
+            ],
+        ];
+
+        $this->actingAs($user)
+            ->postJson(route('journal.guest.store'), $payload)
+            ->assertOk();
+
+        $this->actingAs($user)
+            ->postJson(route('journal.guest.store'), $payloadUpdated)
+            ->assertOk();
+
+        $this->assertDatabaseCount('journals', 1);
+
+        $journal = Journal::first();
+        $this->assertNotNull($journal);
+        $this->assertSame('Second entry', $journal->sections[0]['value']);
+        $this->assertSame('Second English', $journal->english_text);
+        $this->assertSame('Second summary', $journal->feedback_overall);
+        $this->assertSame('second phrase', $journal->key_phrase_en);
+    }
+
     public function test_create_includes_today_journal_when_exists(): void
     {
         Carbon::setTestNow(Carbon::parse('2025-01-10'));

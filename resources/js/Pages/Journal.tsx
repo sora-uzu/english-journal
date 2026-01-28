@@ -152,10 +152,17 @@ export default function Journal({
         presetSavedMessage ?? null
     );
     const [guestProcessing, setGuestProcessing] = React.useState(false);
+    const [autosaveError, setAutosaveError] = React.useState<string | null>(
+        null
+    );
+    const [autosavePending, setAutosavePending] =
+        React.useState<GuestPendingSave | null>(null);
+    const [isAutosaving, setIsAutosaving] = React.useState(false);
     const isProcessing = processing || guestProcessing;
     const draftSaveTimerRef = React.useRef<number | null>(null);
     const initialLoadRef = React.useRef(false);
     const autosaveAttemptedRef = React.useRef(false);
+    const autosaveInFlightRef = React.useRef(false);
     const submitLabel = isGuest
         ? "Get feedback"
         : hasTodayJournal
@@ -424,6 +431,52 @@ export default function Journal({
         window.history.replaceState({}, "", url.toString());
     }, []);
 
+    const runAutosave = React.useCallback(
+        async (pending: GuestPendingSave) => {
+            if (autosaveInFlightRef.current) {
+                return;
+            }
+
+            autosaveInFlightRef.current = true;
+            setIsAutosaving(true);
+            setAutosaveError(null);
+
+            try {
+                const response = await fetch(route("journal.guest.store"), {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        Accept: "application/json",
+                        "Content-Type": "application/json",
+                        "X-CSRF-TOKEN": getCsrfToken(),
+                    },
+                    body: JSON.stringify(buildGuestPendingPayload(pending)),
+                });
+
+                if (!response.ok) {
+                    setAutosaveError("再試行してください。");
+                    return;
+                }
+
+                clearGuestPendingSave();
+                setAutosavePending(null);
+                setToastMessage("履歴に保存しました。");
+                clearAutosaveParam();
+            } catch (error) {
+                setAutosaveError("再試行してください。");
+            } finally {
+                autosaveInFlightRef.current = false;
+                setIsAutosaving(false);
+            }
+        },
+        [
+            buildGuestPendingPayload,
+            clearAutosaveParam,
+            clearGuestPendingSave,
+            getCsrfToken,
+        ]
+    );
+
     React.useEffect(() => {
         if (isGuest) {
             return;
@@ -450,6 +503,8 @@ export default function Journal({
             return;
         }
 
+        setAutosavePending(pending);
+
         const hasTemplate = availableTemplates.some(
             (candidate) => candidate.slug === pending.template_slug
         );
@@ -464,40 +519,14 @@ export default function Journal({
             normalizeSections(pending.entry.sections as Section[])
         );
 
-        const runAutosave = async () => {
-            try {
-                const response = await fetch(route("journal.guest.store"), {
-                    method: "POST",
-                    credentials: "same-origin",
-                    headers: {
-                        Accept: "application/json",
-                        "Content-Type": "application/json",
-                        "X-CSRF-TOKEN": getCsrfToken(),
-                    },
-                    body: JSON.stringify(buildGuestPendingPayload(pending)),
-                });
-
-                if (response.ok) {
-                    clearGuestPendingSave();
-                    setToastMessage("履歴に保存しました。");
-                    clearAutosaveParam();
-                }
-            } catch (error) {
-                // Keep pending data for retry.
-            }
-        };
-
-        void runAutosave();
+        void runAutosave(pending);
     }, [
         availableTemplates,
-        buildGuestPendingPayload,
         clearAutosaveParam,
-        clearGuestPendingSave,
-        getCsrfToken,
         isGuest,
         normalizeSections,
+        runAutosave,
         setData,
-        setToastMessage,
     ]);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -595,6 +624,33 @@ export default function Journal({
 
             <div className="pt-2 pb-4 sm:py-5 md:py-6">
                 <div className="mx-auto max-w-xl sm:px-6 lg:px-8">
+                    {autosavePending && autosaveError && (
+                        <div className="mb-4">
+                            <GlassCard className="border-amber-200/70 bg-amber-50/70 p-4 sm:p-5">
+                                <div className="space-y-2">
+                                    <p className="text-sm font-semibold text-slate-800">
+                                        自動保存に失敗しました。
+                                    </p>
+                                    <p className="text-xs text-rose-600">
+                                        {autosaveError}
+                                    </p>
+                                </div>
+                                <div className="mt-3 flex flex-wrap items-center gap-3">
+                                    <GlassButton
+                                        type="button"
+                                        className="px-4 py-2.5"
+                                        onClick={() =>
+                                            autosavePending &&
+                                            runAutosave(autosavePending)
+                                        }
+                                        disabled={isAutosaving}
+                                    >
+                                        再試行
+                                    </GlassButton>
+                                </div>
+                            </GlassCard>
+                        </div>
+                    )}
                     <GlassCard className="p-5 sm:p-6">
                         <form
                             onSubmit={handleSubmit}

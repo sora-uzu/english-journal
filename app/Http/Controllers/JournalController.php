@@ -8,6 +8,7 @@ use App\Support\JournalTemplateCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -286,22 +287,47 @@ class JournalController extends Controller
             $feedback = $this->feedbackComposer->build($sectionsToStore)['feedback'];
         }
 
-        $journal = Journal::updateOrCreate(
+        $userId = Auth::id();
+        $now = now();
+        $attributes = [
+            'user_id' => $userId,
+            'date' => $validated['date'],
+        ];
+        $payload = array_merge(
+            $attributes,
             [
-                'user_id' => Auth::id(),
-                'date'    => $validated['date'],
+                'sections' => $sectionsToStore,
+                'sections_json' => $sectionsToStore,
+                'updated_at' => $now,
+                'created_at' => $now,
             ],
-            array_merge(
-                [
-                    'sections' => $sectionsToStore,
-                    'sections_json' => $sectionsToStore,
-                ],
-                $feedback
-            )
+            $feedback
         );
 
+        $updateColumns = [
+            'sections',
+            'sections_json',
+            'english_text',
+            'feedback_overall',
+            'feedback_corrections_json',
+            'key_phrase_en',
+            'key_phrase_ja',
+            'key_phrase_reason_ja',
+            'updated_at',
+        ];
+
+        DB::transaction(function () use ($payload, $updateColumns) {
+            Journal::query()->upsert(
+                [$payload],
+                ['user_id', 'date'],
+                $updateColumns
+            );
+        });
+
+        $journal = Journal::where($attributes)->first();
+
         return response()->json([
-            'journal_id' => $journal->id,
+            'journal_id' => $journal?->id,
         ]);
     }
 
