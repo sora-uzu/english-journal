@@ -287,47 +287,24 @@ class JournalController extends Controller
             $feedback = $this->feedbackComposer->build($sectionsToStore)['feedback'];
         }
 
-        $userId = Auth::id();
-        $now = now();
         $attributes = [
-            'user_id' => $userId,
+            'user_id' => Auth::id(),
             'date' => $validated['date'],
         ];
         $payload = array_merge(
-            $attributes,
             [
                 'sections' => $sectionsToStore,
                 'sections_json' => $sectionsToStore,
-                'updated_at' => $now,
-                'created_at' => $now,
             ],
             $feedback
         );
 
-        $updateColumns = [
-            'sections',
-            'sections_json',
-            'english_text',
-            'feedback_overall',
-            'feedback_corrections_json',
-            'key_phrase_en',
-            'key_phrase_ja',
-            'key_phrase_reason_ja',
-            'updated_at',
-        ];
-
-        DB::transaction(function () use ($payload, $updateColumns) {
-            Journal::query()->upsert(
-                [$payload],
-                ['user_id', 'date'],
-                $updateColumns
-            );
+        $journal = DB::transaction(function () use ($attributes, $payload) {
+            return Journal::updateOrCreate($attributes, $payload);
         });
 
-        $journal = Journal::where($attributes)->first();
-
         return response()->json([
-            'journal_id' => $journal?->id,
+            'journal_id' => $journal->id,
         ]);
     }
 
