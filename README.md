@@ -1,4 +1,4 @@
-# English Journal
+# English Journal (https://english-journal.onrender.com/)
 
 > 3分で続けられる、静かな英語日記。
 
