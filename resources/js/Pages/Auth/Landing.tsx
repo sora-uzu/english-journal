@@ -6,19 +6,21 @@ export default function Landing() {
     return (
         <AuthLayout
             title="English Journal"
-            subtitle="3分で続けられる、静かな英語日記アプリ"
+            subtitle="3分で書ける、AI英語日記。"
         >
             <Head title="English Journal" />
 
             <div className="space-y-3">
                 <p className="text-sm leading-relaxed text-slate-700">
-                    英語の勉強アプリではなく、あなたのための “静かなメモ帳”。
+                    <span className="font-semibold">English Journal</span>
+                    は、毎日3分で書ける
+                    <span className="font-semibold">AI添削つき</span>
+                    英語日記アプリです。
                 </p>
                 <p className="text-sm leading-relaxed text-slate-700">
-                    1日3分、日本語でも英語でも、今日の気持ちや出来事をひとこと書くだけ。
-                </p>
-                <p className="text-sm leading-relaxed text-slate-700">
-                    書いた内容から AI が自然な英語に整え、明日も使えるキーフレーズをそっと返します。
+                    日本語でも英語でも書けて、入力内容を
+                    <span className="font-semibold">自然な英語に整え</span>
+                    、改善ポイントも返します。
                 </p>
             </div>
 
