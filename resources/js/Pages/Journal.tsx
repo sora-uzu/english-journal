@@ -163,11 +163,7 @@ export default function Journal({
     const initialLoadRef = React.useRef(false);
     const autosaveAttemptedRef = React.useRef(false);
     const autosaveInFlightRef = React.useRef(false);
-    const submitLabel = isGuest
-        ? "Get feedback"
-        : hasTodayJournal
-          ? "保存（更新）"
-          : "フィードバックを作成";
+    const submitLabel = "フィードバックを作成";
     const processingLabel = isGuest
         ? "Saving & generating feedback..."
         : hasTodayJournal

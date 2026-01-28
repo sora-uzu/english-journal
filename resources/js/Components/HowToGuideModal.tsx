@@ -34,7 +34,7 @@ export default function HowToGuideModal({
                         ・セクション構成は、画面右上のメニュー→「Sections」からプリセットを選んで切り替えできます。
                     </li>
                     <li>
-                        ・Get feedback を押すと、自然な英語の文章と、その日のキーフレーズが返ってきます。
+                        ・「フィードバックを作成」を押すと、自然な英語の文章と、その日のキーフレーズが返ってきます。
                     </li>
                 </ul>
                 <div className="mt-6">
